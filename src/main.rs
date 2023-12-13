@@ -1,10 +1,78 @@
 #[cfg(feature = "ssr")]
+mod utilities {
+    use axum::extract::{RawQuery, State};
+    use axum::response::IntoResponse;
+    use axum::{
+        body::Body as AxumBody,
+        extract::Path,
+        http::{header::HeaderMap, Request},
+        response::Response,
+    };
+    use leptos::logging::log;
+    use leptos::provide_context;
+    use leptos_axum::handle_server_fns_with_context;
+    use nexus::app::App;
+    use nexus::app_state::AppState;
+
+    pub async fn server_fn_handler(
+        State(app_state): State<AppState>,
+        path: Path<String>,
+        headers: HeaderMap,
+        raw_query: RawQuery,
+        request: Request<AxumBody>,
+    ) -> impl IntoResponse {
+        log!("{:?}", path);
+
+        handle_server_fns_with_context(
+            path,
+            headers,
+            raw_query,
+            move || {
+                provide_context(app_state.dynamodb_client.clone());
+            },
+            request,
+        )
+        .await
+    }
+
+    pub async fn leptos_routes_handler(
+        State(app_state): State<AppState>,
+        req: Request<AxumBody>,
+    ) -> Response {
+        let handler = leptos_axum::render_route_with_context(
+            app_state.leptos_options.clone(),
+            app_state.routes.clone(),
+            move || {
+                provide_context(app_state.dynamodb_client.clone());
+            },
+            App,
+        );
+        handler(req).await.into_response()
+    }
+}
+
+#[cfg(feature = "ssr")]
 #[tokio::main]
 async fn main() {
-    use axum::{routing::post, Router};
+    use aws_config::BehaviorVersion;
+    use aws_sdk_dynamodb::Client as DynamoClient;
+    use aws_sdk_ses::Client as SesClient;
+    use axum::routing::post;
+    use axum::{
+        body::Body as AxumBody,
+        extract::{FromRef, Path, RawQuery, State},
+        http::{header::HeaderMap, Request},
+        response::{IntoResponse, Response},
+        routing::get,
+        Router,
+    };
     use leptos::*;
+    use leptos::{get_configuration, logging::log, provide_context};
     use leptos_axum::{generate_route_list, LeptosRoutes};
+    use leptos_router::RouteListing;
+    use nexus::app_state::AppState;
     use nexus::{app::*, fileserv::file_and_error_handler};
+    use std::sync::Arc;
 
     simple_logger::init_with_level(log::Level::Debug).expect("couldn't initialize logging");
 
@@ -20,12 +88,25 @@ async fn main() {
     let addr = leptos_options.site_addr;
     let routes = generate_route_list(App);
 
+    let aws_sdk_config = aws_config::load_defaults(BehaviorVersion::latest()).await;
+
+    let app_state = AppState {
+        leptos_options,
+        routes: routes.clone(),
+        dynamodb_client: DynamoClient::new(&aws_sdk_config).into(),
+        ses_client: SesClient::new(&aws_sdk_config).into(),
+    };
+
     // build our application with a route
     let app = Router::new()
-        .route("/api/*fn_name", post(leptos_axum::handle_server_fns))
-        .leptos_routes(&leptos_options, routes, App)
+        .route(
+            "/api/*fn_name",
+            get(utilities::server_fn_handler).post(utilities::server_fn_handler),
+        )
+        .leptos_routes_with_handler(routes, get(utilities::leptos_routes_handler))
+        //.leptos_routes(&leptos_options, routes, App)
         .fallback(file_and_error_handler)
-        .with_state(leptos_options);
+        .with_state(app_state);
 
     // In development, we use the Hyper server
     #[cfg(debug_assertions)]
@@ -54,3 +135,4 @@ pub fn main() {
     // unless we want this to work with e.g., Trunk for a purely client-side app
     // see lib.rs for hydration function instead
 }
+

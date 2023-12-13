@@ -1,4 +1,7 @@
-use crate::error_template::{AppError, ErrorTemplate};
+use crate::{
+    auth::verify_email,
+    error_template::{AppError, ErrorTemplate},
+};
 use leptos::*;
 use leptos_meta::*;
 use leptos_router::*;
@@ -37,6 +40,8 @@ pub fn App() -> impl IntoView {
                         <Route path="credits" view=CreditsPage/>
                         <Route path="support" view=SupportFAQPage/>
                         <Route path="log_in" view=LoginPage/>
+                        <Route path="email_verification" view=EmailVerification/>
+                        <Route path="email_verification/:email_uuid" view=EmailVerificationAttempt/>
                     </Routes>
                 </main>
                 <Footer/>
@@ -99,6 +104,46 @@ fn SupportFAQPage() -> impl IntoView {
         </ul>
         <p>Contact andrewpetersongamedev@gmail.com for any issues with support</p>
     }
+}
+
+#[component]
+fn EmailVerification() -> impl IntoView {
+    view! {
+        <h1>
+            You should be recieving an email to the email address you specified when logging in.
+        </h1>
+        <h2>Click on that link, and you can log in as you wish.</h2>
+    }
+}
+
+#[derive(Params, PartialEq, Clone)]
+pub struct EmailVerificationParams {
+    uuid: String,
+}
+
+#[component]
+fn EmailVerificationAttempt() -> impl IntoView {
+    let params = use_params::<EmailVerificationParams>();
+    let uuid = move || {
+        params.with(|params| {
+            params
+                .as_ref()
+                .map(|params| params.uuid.clone())
+                .unwrap_or_default()
+        })
+    };
+
+    let x = create_resource(|| (), move |_| async move { verify_email(uuid()).await });
+
+    let f = move || match x.get() {
+        None => view! {},
+        Some(s) => match s {
+            Ok(_) => view! { <div>Verification was successful</div> },
+            Err(e) => view! { <div></div> },
+        },
+    };
+
+    view! { <div>{f}</div> }
 }
 
 #[component]
