@@ -1,11 +1,10 @@
 use core::fmt;
 
 use serde::{Deserialize, Serialize};
-use serde_json::Result;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-pub enum NexusServerError {
+pub enum NexusError {
     PasswordsNotMatching,
     DisplayNameInappropriate,
     CouldNotHashPassword,
@@ -15,11 +14,16 @@ pub enum NexusServerError {
     CouldNotFindRowWithThatEmail,
     EmailVerificationUuidNotFound,
     EmailNotFoundLogin,
+    IncorrectPassword,
+    InvalidSession,
+    EmailAlreadyInUse,
+    AccountNotVerified,
+    BadEmailAddress,
     #[serde(other)]
     Unhandled,
 }
 
-impl fmt::Display for NexusServerError {
+impl fmt::Display for NexusError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match serde_json::to_string(self) {
             Ok(o) => write!(f, "{}", o),

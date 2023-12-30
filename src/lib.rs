@@ -2,11 +2,11 @@ use cfg_if::cfg_if;
 pub mod app;
 #[cfg(feature = "ssr")]
 pub mod app_state;
-pub mod auth;
 pub mod dynamo;
 pub mod error_template;
 pub mod errors;
 pub mod fileserv;
+pub mod server;
 pub mod site;
 
 cfg_if! { if #[cfg(feature = "hydrate")] {

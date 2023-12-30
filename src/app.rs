@@ -1,6 +1,6 @@
 use crate::{
-    auth::verify_email,
     error_template::{AppError, ErrorTemplate},
+    server::public::Login,
 };
 use leptos::*;
 use leptos_meta::*;
@@ -133,13 +133,16 @@ fn EmailVerificationAttempt() -> impl IntoView {
         })
     };
 
-    let x = create_resource(|| (), move |_| async move { verify_email(uuid()).await });
+    let x = create_resource(
+        || (),
+        move |_| async move { crate::server::public::verify_email_on_signup(uuid()).await },
+    );
 
     let f = move || match x.get() {
-        None => view! {},
+        None => view! { <div>hi there</div> },
         Some(s) => match s {
             Ok(_) => view! { <div>Verification was successful</div> },
-            Err(e) => view! { <div></div> },
+            Err(e) => view! { <div>error oh no</div> },
         },
     };
 
@@ -148,8 +151,10 @@ fn EmailVerificationAttempt() -> impl IntoView {
 
 #[component]
 fn LoginPage() -> impl IntoView {
+    let login = create_server_action::<Login>();
+
     // TODO: check security on using signals to store password
-    let (username, set_username) = create_signal("Username".to_string());
+    let (display_name, set_display_name) = create_signal("Display Name".to_string());
     let (password, set_password) = create_signal("Password".to_string());
     let (email, set_email) = create_signal("Email".to_string());
     view! {
@@ -160,10 +165,10 @@ fn LoginPage() -> impl IntoView {
                 <input
                     type="text"
                     on:input=move |ev| {
-                        set_username(event_target_value(&ev));
+                        set_display_name(event_target_value(&ev));
                     }
 
-                    prop:value=username
+                    prop:value=display_name
                 />
                 <br/>
                 <label for="email">Email:</label>

@@ -57,22 +57,10 @@ async fn main() {
     use aws_config::BehaviorVersion;
     use aws_sdk_dynamodb::Client as DynamoClient;
     use aws_sdk_ses::Client as SesClient;
-    use axum::routing::post;
-    use axum::{
-        body::Body as AxumBody,
-        extract::{FromRef, Path, RawQuery, State},
-        http::{header::HeaderMap, Request},
-        response::{IntoResponse, Response},
-        routing::get,
-        Router,
-    };
-    use leptos::*;
-    use leptos::{get_configuration, logging::log, provide_context};
+    use axum::{routing::get, Router};
+    use leptos::get_configuration;
     use leptos_axum::{generate_route_list, LeptosRoutes};
-    use leptos_router::RouteListing;
-    use nexus::app_state::AppState;
-    use nexus::{app::*, fileserv::file_and_error_handler};
-    use std::sync::Arc;
+    use nexus::{app::App, app_state::AppState, fileserv::file_and_error_handler};
 
     simple_logger::init_with_level(log::Level::Debug).expect("couldn't initialize logging");
 
@@ -104,7 +92,6 @@ async fn main() {
             get(utilities::server_fn_handler).post(utilities::server_fn_handler),
         )
         .leptos_routes_with_handler(routes, get(utilities::leptos_routes_handler))
-        //.leptos_routes(&leptos_options, routes, App)
         .fallback(file_and_error_handler)
         .with_state(app_state);
 

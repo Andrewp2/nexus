@@ -37,6 +37,8 @@ argon2 = { version = "0.5.2", optional = true, features = [] }
 rand = { version = "0.8.5", optional = true }
 rustrict = { version = "0.7.16", optional = true }
 serde_json = "1.0.108"
+axum-extra = { version = "0.4.2", optional = true, features = ["cookie"] }
+email_address = { version = "0.2.4", optional = true }
 
 [features]
 hydrate = ["leptos/hydrate", "leptos_meta/hydrate", "leptos_router/hydrate"]
@@ -60,6 +62,8 @@ ssr = [
     "dep:argon2",
     "dep:rand",
     "dep:rustrict",
+    "dep:axum-extra",
+    "dep:email_address",
 ]
 
 # Defines a size-optimized profile for the WASM bundle in release mode
