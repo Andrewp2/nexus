@@ -31,21 +31,15 @@ pub async fn signup(
 }
 
 #[server(VerifyEmail, "/api")]
-pub async fn verify_email_on_signup(email_uuid: String) -> Result<(), ServerFnError> {
-    use super::verify_email::verify_email_for_signup;
-    verify_email_for_signup(email_uuid).await
+pub async fn verify_email(email_uuid: String) -> Result<(), ServerFnError> {
+    use super::verify_email::verify_email;
+    verify_email(email_uuid).await
 }
 
 #[server(ChangeEmailRequest, "/api")]
 pub async fn change_email_request(new_email: String) -> Result<(), ServerFnError> {
     use super::change_profile::change_email_request;
     change_email_request(new_email).await
-}
-
-#[server(ChangeEmailValidation, "/api")]
-pub async fn change_email_validation(email_uuid: String) -> Result<(), ServerFnError> {
-    use super::change_profile::change_email_validation;
-    change_email_validation(email_uuid).await
 }
 
 #[server(ChangeDisplayName, "/api")]

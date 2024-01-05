@@ -1,12 +1,12 @@
-use super::utilities::{dynamo_client, extract_email_from_query, get_session_cookie, ses_client};
+use super::utilities::{dynamo_client, get_email_from_session_id, get_session_cookie, ses_client};
 use crate::{
     dynamo::constants::{
-        index::{self, EMAIL_VERIFICATION_UUID},
+        index::EMAIL_VERIFICATION_UUID,
         table_attributes::{self, EMAIL, EMAIL_VERIFIED, SESSION_EXPIRY, SESSION_ID},
         TABLE_NAME,
     },
     errors::NexusError,
-    site::constants::{SITE_EMAIL_ADDRESS, SITE_FULL_DOMAIN},
+    site::constants::{SITE_DOMAIN, SITE_EMAIL_ADDRESS, SITE_FULL_DOMAIN},
 };
 use aws_sdk_dynamodb::{
     error::SdkError,
@@ -20,6 +20,7 @@ use aws_sdk_ses::{
 use chrono::Utc;
 use email_address::EmailAddress;
 use leptos::ServerFnError;
+use rustrict::{Censor, Type};
 use uuid::Uuid;
 
 /// Starts a request to change email
@@ -83,11 +84,20 @@ pub async fn change_email_request(new_email: String) -> Result<(), ServerFnError
     })?;
     let session_expiry = attributes
         .get(SESSION_EXPIRY)
-        .unwrap()
+        .ok_or_else(|| {
+            log::error!("Could not get session expiry");
+            ServerFnError::ServerError(NexusError::Unhandled.to_string())
+        })?
         .as_n()
-        .unwrap()
+        .map_err(|e| {
+            log::error!("Could not convert session expiry to number {:?}", e);
+            ServerFnError::ServerError(NexusError::Unhandled.to_string())
+        })?
         .parse::<i64>()
-        .unwrap();
+        .map_err(|e| {
+            log::error!("Could not parse sesion expiry number as i64 {:?}", e);
+            ServerFnError::ServerError(NexusError::Unhandled.to_string())
+        })?;
     let now = Utc::now().timestamp();
     if now >= session_expiry {
         return Err(ServerFnError::ServerError(
@@ -169,7 +179,10 @@ If you did not request an email address change, please change your password.",
     let email_body_html = Content::builder().data(body).build()?;
     let email_body = Body::builder().html(email_body_html).build();
     let email_subject_content = Content::builder()
-        .data("[MySite] Please verify your email address")
+        .data(format!(
+            "[{}] Please verify your email address",
+            SITE_DOMAIN
+        ))
         .build()?;
     let email_message = Message::builder()
         .subject(email_subject_content)
@@ -184,16 +197,13 @@ If you did not request an email address change, please change your password.",
         .await;
     match email_send_resp {
         Ok(_) => Ok(()),
-        Err(e) => Err(handle_verify_change_email_request_error(e, new_email)),
+        Err(e) => Err(handle_send_email_error(e, new_email)),
     }?;
     leptos_axum::redirect("/email_verification/");
     Ok(())
 }
 
-fn handle_verify_change_email_request_error(
-    e: SdkError<SendEmailError>,
-    new_email: String,
-) -> ServerFnError {
+fn handle_send_email_error(e: SdkError<SendEmailError>, new_email: String) -> ServerFnError {
     log::error!("Warning, we created a new account for {} but we weren't able to send them the verification email!", new_email);
     ServerFnError::ServerError(
         match e.into_service_error() {
@@ -226,123 +236,79 @@ fn handle_verify_change_email_request_error(
     )
 }
 
-pub async fn change_email_validation(email_uuid: String) -> Result<(), ServerFnError> {
+async fn change_value(name: &str, value: AttributeValue) -> Result<(), ServerFnError> {
     let client = dynamo_client()?;
-    // first we have to query to find the email address associated with this verification attempt.
-    let db_query_result = client
-        .query()
-        .limit(1)
+    let session_id = get_session_cookie().await?;
+    let email = get_email_from_session_id(session_id, &client).await?;
+    let update_resp = client
+        .update_item()
         .table_name(TABLE_NAME)
-        .index_name(index::EMAIL_VERIFICATION_UUID)
-        .key_condition_expression("#k = :v")
-        .expression_attribute_names("k".to_string(), table_attributes::EMAIL_VERIFICATION_UUID)
-        .expression_attribute_values(":v".to_string(), AttributeValue::S(email_uuid))
+        .key(table_attributes::EMAIL, AttributeValue::S(email))
+        .update_expression("SET #e = :r")
+        .expression_attribute_names("e".to_string(), name)
+        .expression_attribute_values(":r", value)
         .send()
         .await;
-
-    let email = match db_query_result {
-        Ok(o) => Ok(extract_email_from_query(o)?),
+    match update_resp {
+        Ok(_) => Ok(()),
         Err(e) => Err(ServerFnError::ServerError(
             match e.into_service_error() {
-                QueryError::InternalServerError(e) => {
-                    log::error!("{:?}", e);
-                    NexusError::GenericDynamoServiceError
+                UpdateItemError::ConditionalCheckFailedException(e2) => {
+                    log::error!("{:?}", e2);
+                    NexusError::Unhandled
                 }
-                QueryError::InvalidEndpointException(e) => {
-                    log::error!("{:?}", e);
-                    NexusError::GenericDynamoServiceError
+                UpdateItemError::InternalServerError(e2) => {
+                    log::error!("{:?}", e2);
+                    NexusError::Unhandled
                 }
-                QueryError::ProvisionedThroughputExceededException(e) => {
-                    log::error!("{:?}", e);
-                    NexusError::GenericDynamoServiceError
+                UpdateItemError::InvalidEndpointException(e2) => {
+                    log::error!("{:?}", e2);
+                    NexusError::Unhandled
                 }
-                QueryError::RequestLimitExceeded(e) => {
-                    log::error!("{:?}", e);
-                    NexusError::GenericDynamoServiceError
+                UpdateItemError::ItemCollectionSizeLimitExceededException(e2) => {
+                    log::error!("{:?}", e2);
+                    NexusError::Unhandled
                 }
-                QueryError::ResourceNotFoundException(e) => {
-                    log::error!("{:?}", e);
-                    NexusError::GenericDynamoServiceError
+                UpdateItemError::ProvisionedThroughputExceededException(e2) => {
+                    log::error!("{:?}", e2);
+                    NexusError::Unhandled
                 }
-                e => {
-                    log::error!("{:?}", e);
-                    NexusError::GenericDynamoServiceError
+                UpdateItemError::RequestLimitExceeded(e2) => {
+                    log::error!("{:?}", e2);
+                    NexusError::Unhandled
+                }
+                UpdateItemError::ResourceNotFoundException(e2) => {
+                    log::error!("{:?}", e2);
+                    NexusError::Unhandled
+                }
+                UpdateItemError::TransactionConflictException(e2) => {
+                    log::error!("{:?}", e2);
+                    NexusError::Unhandled
+                }
+                e2 => {
+                    log::error!("{:?}", e2);
+                    NexusError::Unhandled
                 }
             }
             .to_string(),
         )),
-    }?;
-
-    // secondly if we can find the email, update its verification field
-    let db_update_result = client
-        .update_item()
-        .table_name(TABLE_NAME)
-        .key(
-            table_attributes::EMAIL,
-            AttributeValue::S(email.to_string()),
-        )
-        .update_expression("SET #e = :r")
-        .expression_attribute_names("e".to_string(), table_attributes::EMAIL_VERIFIED)
-        .expression_attribute_values(":r", AttributeValue::Bool(true))
-        .send()
-        .await;
-    match db_update_result {
-        Ok(_) => Ok(()),
-        Err(e) => Err(handle_verify_email_update_error(e)),
     }
 }
 
-fn handle_verify_email_update_error(e: SdkError<UpdateItemError>) -> ServerFnError {
-    ServerFnError::ServerError(
-        match e.into_service_error() {
-            UpdateItemError::ConditionalCheckFailedException(e) => {
-                log::error!("{:?}", e);
-                NexusError::GenericDynamoServiceError
-            }
-            UpdateItemError::InternalServerError(e) => {
-                log::error!("{:?}", e);
-                NexusError::GenericDynamoServiceError
-            }
-            UpdateItemError::InvalidEndpointException(e) => {
-                log::error!("{:?}", e);
-                NexusError::GenericDynamoServiceError
-            }
-            UpdateItemError::ItemCollectionSizeLimitExceededException(e) => {
-                log::error!("{:?}", e);
-                NexusError::GenericDynamoServiceError
-            }
-            UpdateItemError::ProvisionedThroughputExceededException(e) => {
-                log::error!("{:?}", e);
-                NexusError::GenericDynamoServiceError
-            }
-            UpdateItemError::RequestLimitExceeded(e) => {
-                log::error!("{:?}", e);
-                NexusError::GenericDynamoServiceError
-            }
-            UpdateItemError::ResourceNotFoundException(e) => {
-                log::error!("{:?}", e);
-                NexusError::GenericDynamoServiceError
-            }
-            UpdateItemError::TransactionConflictException(e) => {
-                log::error!("{:?}", e);
-                NexusError::GenericDynamoServiceError
-            }
-            e => {
-                log::error!("{:?}", e);
-                NexusError::GenericDynamoServiceError
-            }
-        }
-        .to_string(),
-    )
-}
-
 pub async fn change_display_name(new_display_name: String) -> Result<(), ServerFnError> {
-    // update old record
-    Ok(())
+    let mut censor = Censor::from_str(&new_display_name);
+    let censor_type = censor.analyze();
+    if censor_type.is(Type::MODERATE_OR_HIGHER) {
+        return Err(ServerFnError::ServerError(
+            NexusError::DisplayNameInappropriate.to_string(),
+        ));
+    }
+    let display_name_av = AttributeValue::S(new_display_name);
+    change_value(table_attributes::DISPLAY_NAME, display_name_av).await
 }
 
 pub async fn change_password(new_password: String) -> Result<(), ServerFnError> {
-    // update old record
-    Ok(())
+    let new_password_av = AttributeValue::S(new_password);
+    change_value(table_attributes::PASSWORD, new_password_av).await
 }
 

@@ -10,8 +10,6 @@ pub mod signup;
 pub mod utilities;
 #[cfg(feature = "ssr")]
 pub mod verify_email;
-#[cfg(feature = "ssr")]
-pub mod verify_email_on_change;
 
 pub mod public;
 

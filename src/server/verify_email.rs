@@ -27,7 +27,7 @@ Somebody just used this email address to sign up at {}.
         
 If this was you, verify your email by clicking on the link below:
         
-https://{}/email-verification/{}
+https://{}/email-verification/?uuid={}
         
 If this was not you, you may ignore this email.",
         SITE_DOMAIN,
@@ -37,7 +37,10 @@ If this was not you, you may ignore this email.",
     let email_body_html = Content::builder().data(body).build()?;
     let email_body = Body::builder().html(email_body_html).build();
     let email_subject_content = Content::builder()
-        .data("[MySite] Please verify your email address")
+        .data(format!(
+            "[{}] Please verify your email address",
+            SITE_DOMAIN
+        ))
         .build()?;
     let email_message = Message::builder()
         .subject(email_subject_content)
@@ -90,7 +93,7 @@ fn handle_send_email_error(e: SdkError<SendEmailError>) -> ServerFnError {
 }
 
 /// Verifies a given email_uuid
-pub async fn verify_email_for_signup(email_uuid: String) -> Result<(), ServerFnError> {
+pub async fn verify_email(email_uuid: String) -> Result<(), ServerFnError> {
     let client = dynamo_client()?;
     // first we have to query to find the email address associated with this verification attempt.
     let db_query_result = client

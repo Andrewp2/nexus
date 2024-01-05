@@ -21,6 +21,7 @@ use rand::rngs::OsRng;
 
 use crate::{
     dynamo::constants::{
+        index,
         table_attributes::{self, EMAIL, SESSION_EXPIRY, SESSION_ID},
         TABLE_NAME,
     },
@@ -266,5 +267,56 @@ pub async fn check_email_uniqueness(
             }
         },
     }
+}
+
+pub async fn get_email_from_session_id(
+    session_id_cookie: String,
+    client: &aws_sdk_dynamodb::Client,
+) -> Result<String, ServerFnError> {
+    let db_query_result = client
+        .query()
+        .limit(1)
+        .table_name(TABLE_NAME)
+        .index_name(index::SESSION_ID)
+        .key_condition_expression("#k = :v")
+        .expression_attribute_names("k".to_string(), table_attributes::SESSION_ID)
+        .expression_attribute_values(":v".to_string(), AttributeValue::S(session_id_cookie))
+        .send()
+        .await;
+
+    let email = match db_query_result {
+        Ok(o) => Ok(extract_email_from_query(o)?),
+        Err(e) => Err(ServerFnError::ServerError(
+            match e.into_service_error() {
+                QueryError::InternalServerError(e2) => {
+                    log::error!("get_email_from_session_id {:?}", e2);
+                    NexusError::Unhandled
+                }
+                QueryError::InvalidEndpointException(e2) => {
+                    log::error!("get_email_from_session_id {:?}", e2);
+                    NexusError::Unhandled
+                }
+                QueryError::ProvisionedThroughputExceededException(e2) => {
+                    log::error!("get_email_from_session_id {:?}", e2);
+                    NexusError::Unhandled
+                }
+                QueryError::RequestLimitExceeded(e2) => {
+                    log::error!("get_email_from_session_id {:?}", e2);
+                    NexusError::Unhandled
+                }
+                QueryError::ResourceNotFoundException(e2) => {
+                    log::error!("get_email_from_session_id {:?}", e2);
+                    NexusError::Unhandled
+                }
+                e2 => {
+                    log::error!("get_email_from_session_id {:?}", e2);
+                    NexusError::Unhandled
+                }
+            }
+            .to_string(),
+        )),
+    }?;
+
+    Ok(email)
 }
 

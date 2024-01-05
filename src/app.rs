@@ -1,3 +1,5 @@
+use std::error::Error;
+
 use crate::{
     error_template::{AppError, ErrorTemplate},
     server::public::Login,
@@ -135,7 +137,7 @@ fn EmailVerificationAttempt() -> impl IntoView {
 
     let x = create_resource(
         || (),
-        move |_| async move { crate::server::public::verify_email_on_signup(uuid()).await },
+        move |_| async move { crate::server::public::verify_email(uuid()).await },
     );
 
     let f = move || match x.get() {
@@ -152,60 +154,43 @@ fn EmailVerificationAttempt() -> impl IntoView {
 #[component]
 fn LoginPage() -> impl IntoView {
     let login = create_server_action::<Login>();
-
-    // TODO: check security on using signals to store password
-    let (display_name, set_display_name) = create_signal("Display Name".to_string());
-    let (password, set_password) = create_signal("Password".to_string());
-    let (email, set_email) = create_signal("Email".to_string());
+    let error: RwSignal<Option<Box<dyn Error>>> = create_rw_signal(Default::default());
     view! {
-        <div class="form-container">
-            <form id="sign-in-form">
-                <label for="username">Username:</label>
-                <br/>
+        <ActionForm action=login error=error>
+            <h1>"Log in"</h1>
+            <label>
+                "Email:" <br/>
                 <input
-                    type="text"
-                    on:input=move |ev| {
-                        set_display_name(event_target_value(&ev));
-                    }
-
-                    prop:value=display_name
+                    type="email"
+                    placeholder="Email"
+                    maxlength="32"
+                    name="email"
+                    class="auth-input"
+                    required
                 />
-                <br/>
-                <label for="email">Email:</label>
-                <br/>
-                <input
-                    type="text"
-                    on:input=move |ev| {
-                        set_email(event_target_value(&ev));
-                    }
-
-                    prop:value=email
-                />
-
-                <br/>
-                <label for="password">Password:</label>
-                <br/>
+            </label>
+            <br/>
+            <label>
+                "Password:" <br/>
                 <input
                     type="password"
-                    on:input=move |ev| {
-                        set_password(event_target_value(&ev));
-                    }
-
-                    prop:value=password
+                    placeholder="Password"
+                    name="password"
+                    class="auth-input"
+                    required
+                    minlength="10"
                 />
-                <br/>
-                <input type="submit"/>
-
-            </form>
-            <form id="register-form"></form>
-        </div>
-
-        <br/>
-
-        <div>
-            Forgotten your <a href="recover">username</a> or <a href="recover">password?</a>
-            You can recover them using your email address at this <a href="recover">link.</a>
-        </div>
+            </label>
+            <br/>
+            <label>
+                <input type="checkbox" name="remember" class="auth-input"/>
+                "Remember me?"
+            </label>
+            <br/>
+            <button type="submit" class="button">
+                "Log In"
+            </button>
+        </ActionForm>
     }
 }
 
