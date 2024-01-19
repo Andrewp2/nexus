@@ -39,6 +39,10 @@ rustrict = { version = "0.7.16", optional = true }
 serde_json = "1.0.108"
 axum-extra = { version = "0.4.2", optional = true, features = ["cookie"] }
 email_address = { version = "0.2.4", optional = true }
+gloo-net = { version = "0.5", features = ["http"] }
+web-sys = { version = "0.3.66", features = ["Window"] }
+js-sys = { version = "0.3.66" }
+wasm-bindgen-futures = { version = "*" }
 
 [features]
 hydrate = ["leptos/hydrate", "leptos_meta/hydrate", "leptos_router/hydrate"]
