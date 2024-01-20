@@ -8,7 +8,7 @@ use web_sys::*;
 pub fn HomePage() -> impl IntoView {
     let game_action = create_action(|_: &()| async move { run(()).await });
     let pending = game_action.pending();
-    let r = game_action.dispatch(());
+    // let r = game_action.dispatch(());
 
     view! {
         <h1>"↓↓↓↓ game ↓↓↓↓"</h1>
