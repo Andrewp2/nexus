@@ -4,11 +4,11 @@ use super::{
 };
 use crate::{
     dynamo::constants::{
+        get_table_name,
         table_attributes::{
             self, ACCOUNT_CREATION_TIME, DISPLAY_NAME, EMAIL, EMAIL_VERIFICATION_UUID,
             EMAIL_VERIFIED, GAMES_BOUGHT, PASSWORD, USER_UUID,
         },
-        TABLE_NAME,
     },
     errors::NexusError,
 };
@@ -60,7 +60,7 @@ pub async fn signup(
         format!("attribute_not_exists({})", table_attributes::EMAIL);
     let db_result = dynamo_client
         .put_item()
-        .table_name(TABLE_NAME)
+        .table_name(get_table_name())
         .item(DISPLAY_NAME, display_name_av)
         .item(EMAIL, email_av)
         .item(PASSWORD, hashed_password_av)

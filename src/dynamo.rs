@@ -1,6 +1,5 @@
 #[cfg(feature = "ssr")]
 pub mod constants {
-    pub const TABLE_NAME: &str = "Users";
     pub mod table_attributes {
         pub const DISPLAY_NAME: &str = "display_name";
         pub const EMAIL: &str = "email";
@@ -12,6 +11,22 @@ pub mod constants {
         pub const SESSION_ID: &str = "session_id";
         pub const SESSION_EXPIRY: &str = "session_expiry";
         pub const EMAIL_VERIFICATION_UUID: &str = "email_verification_uuid";
+    }
+
+    use std::env;
+
+    pub fn get_table_name() -> &'static str {
+        match env::var("STAGE") {
+            Ok(stage) => match stage.as_str() {
+                "prod" => return "Users",
+                "staging" => "Users-staging",
+                "dev" => "Users-dev",
+                _ => panic!("STAGE environment variable not correct"),
+            },
+            Err(_) => {
+                panic!("Cannot get STAGE");
+            }
+        }
     }
 
     pub mod index {

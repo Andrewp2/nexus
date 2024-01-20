@@ -1,8 +1,8 @@
 use super::utilities::{dynamo_client, session_lifespan, verify_password};
 use crate::{
     dynamo::constants::{
+        get_table_name,
         table_attributes::{EMAIL, EMAIL_VERIFIED, PASSWORD, SESSION_EXPIRY, SESSION_ID},
-        TABLE_NAME,
     },
     errors::NexusError,
 };
@@ -28,7 +28,7 @@ pub async fn login(email: String, password: String, remember: bool) -> Result<()
     let db_result = client
         .query()
         .limit(1)
-        .table_name(TABLE_NAME)
+        .table_name(get_table_name())
         .key_condition_expression(key_condition)
         .expression_attribute_values(":email_val", AttributeValue::S(email.clone()))
         .projection_expression(columns_to_query.join(", "))
@@ -58,7 +58,7 @@ pub async fn login(email: String, password: String, remember: bool) -> Result<()
             );
             let db_result = client
                 .update_item()
-                .table_name(TABLE_NAME)
+                .table_name(get_table_name())
                 .key(EMAIL, AttributeValue::S(email))
                 .update_expression(update_expression)
                 .expression_attribute_values(":session_id", AttributeValue::S(session_uuid.clone()))

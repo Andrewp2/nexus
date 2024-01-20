@@ -21,9 +21,8 @@ use rand::rngs::OsRng;
 
 use crate::{
     dynamo::constants::{
-        index,
+        get_table_name, index,
         table_attributes::{self, EMAIL, SESSION_EXPIRY, SESSION_ID},
-        TABLE_NAME,
     },
     errors::NexusError,
 };
@@ -84,7 +83,7 @@ pub async fn check_if_session_is_valid(
 ) -> Result<(bool, String), ServerFnError> {
     let query = client
         .query()
-        .table_name(TABLE_NAME)
+        .table_name(get_table_name())
         .limit(1)
         .index_name(crate::dynamo::constants::index::SESSION_ID)
         .key_condition_expression("#k = :v")
@@ -213,7 +212,7 @@ pub async fn check_email_uniqueness(
 ) -> Result<bool, ServerFnError> {
     let db_query = client
         .get_item()
-        .table_name(TABLE_NAME)
+        .table_name(get_table_name())
         .key(EMAIL, AttributeValue::S(email))
         .projection_expression([EMAIL].join(", "))
         .send()
@@ -276,7 +275,7 @@ pub async fn get_email_from_session_id(
     let db_query_result = client
         .query()
         .limit(1)
-        .table_name(TABLE_NAME)
+        .table_name(get_table_name())
         .index_name(index::SESSION_ID)
         .key_condition_expression("#k = :v")
         .expression_attribute_names("k".to_string(), table_attributes::SESSION_ID)

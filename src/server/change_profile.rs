@@ -1,9 +1,9 @@
 use super::utilities::{dynamo_client, get_email_from_session_id, get_session_cookie, ses_client};
 use crate::{
     dynamo::constants::{
+        get_table_name,
         index::EMAIL_VERIFICATION_UUID,
         table_attributes::{self, EMAIL, EMAIL_VERIFIED, SESSION_EXPIRY, SESSION_ID},
-        TABLE_NAME,
     },
     errors::NexusError,
     site::constants::{SITE_DOMAIN, SITE_EMAIL_ADDRESS, SITE_FULL_DOMAIN},
@@ -34,7 +34,7 @@ pub async fn change_email_request(new_email: String) -> Result<(), ServerFnError
     let client = dynamo_client()?;
     let old_user_query = client
         .query()
-        .table_name(TABLE_NAME)
+        .table_name(get_table_name())
         .limit(1)
         .index_name(crate::dynamo::constants::index::SESSION_ID)
         .key_condition_expression("#k = :v")
@@ -109,7 +109,7 @@ pub async fn change_email_request(new_email: String) -> Result<(), ServerFnError
     // this involves a query for the new email, but we could just use a conditional put
     let mut put = client
         .put_item()
-        .table_name(TABLE_NAME)
+        .table_name(get_table_name())
         .condition_expression(check_email_not_already_exists_expression);
 
     for (name, attribute) in attributes.iter() {
@@ -242,7 +242,7 @@ async fn change_value(name: &str, value: AttributeValue) -> Result<(), ServerFnE
     let email = get_email_from_session_id(session_id, &client).await?;
     let update_resp = client
         .update_item()
-        .table_name(TABLE_NAME)
+        .table_name(get_table_name())
         .key(table_attributes::EMAIL, AttributeValue::S(email))
         .update_expression("SET #e = :r")
         .expression_attribute_names("e".to_string(), name)

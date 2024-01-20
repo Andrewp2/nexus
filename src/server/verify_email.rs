@@ -99,7 +99,7 @@ pub async fn verify_email(email_uuid: String) -> Result<(), ServerFnError> {
     let db_query_result = client
         .query()
         .limit(1)
-        .table_name(TABLE_NAME)
+        .table_name(get_table_name())
         .index_name(index::EMAIL_VERIFICATION_UUID)
         .key_condition_expression("#k = :v")
         .expression_attribute_names("k".to_string(), table_attributes::EMAIL_VERIFICATION_UUID)
@@ -115,7 +115,7 @@ pub async fn verify_email(email_uuid: String) -> Result<(), ServerFnError> {
     // secondly if we can find the email, update its verification field
     let db_update_result = client
         .update_item()
-        .table_name(TABLE_NAME)
+        .table_name(get_table_name())
         .key(
             table_attributes::EMAIL,
             AttributeValue::S(email.to_string()),
