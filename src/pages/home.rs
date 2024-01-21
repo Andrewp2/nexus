@@ -1,14 +1,12 @@
 use js_sys::*;
 use leptos::*;
 use wasm_bindgen::{JsCast, JsValue, UnwrapThrowExt};
-use wasm_bindgen_futures::JsFuture;
 use web_sys::*;
 
 #[component]
 pub fn HomePage() -> impl IntoView {
     let game_action = create_action(|_: &()| async move { run(()).await });
-    let pending = game_action.pending();
-    // let r = game_action.dispatch(());
+    let (invisible, set_invisible) = create_signal(false);
 
     view! {
         <h1>"↓↓↓↓ game ↓↓↓↓"</h1>
@@ -16,8 +14,10 @@ pub fn HomePage() -> impl IntoView {
             <canvas id="bevy"></canvas>
             <button
                 id="run-button"
+                class:invisible=move || invisible()
                 on:click=move |_| {
                     game_action.dispatch(());
+                    set_invisible(true);
                 }
             >
 
