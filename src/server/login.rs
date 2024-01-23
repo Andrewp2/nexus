@@ -75,7 +75,7 @@ pub async fn login(email: String, password: String, remember: bool) -> Result<()
                     // and GMT == UTC for HTTP purposes
                     // double check this in the future
                     let cookie = format!(
-                        "{}={};Expires={};Secure;SameSite=Strict;HttpOnly; Path=/",
+                        "__Host-{}={};Expires={};Secure;SameSite=Strict;HttpOnly; Path=/",
                         SESSION_ID,
                         session_uuid.clone(),
                         future_time.format("%a, %d %b %Y %H:%M:%S GMT").to_string()

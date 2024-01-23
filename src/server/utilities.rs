@@ -74,7 +74,13 @@ pub async fn get_session_cookie() -> Result<String, ServerFnError> {
             ServerFnError::ServerError(NexusError::Unhandled.to_string())
         })?
         .value()
-        .to_string())
+        .to_string()
+        .strip_prefix("__Host-")
+        .ok_or_else(|| {
+            log::error!("Couldn't remove __Host- prefix from cookie");
+            ServerFnError::ServerError(NexusError::Unhandled.to_string())
+        })?
+        .to_owned())
 }
 
 pub async fn check_if_session_is_valid(

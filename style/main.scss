@@ -69,7 +69,7 @@ header {
 footer {
 	height: 50px;
 	margin-top: auto;
-	background-color: $footer-color;
+	background-color: $secondary-color;
 	color: #fff;
 	font-size: 14px;
 	display: flex;
@@ -134,4 +134,11 @@ footer a:hover {
 
 .invisible {
 	display: none;
+}
+
+.discord-link {
+	background-color: $primary-color;
+	color: white;
+	padding: 15px 25px;
+	text-decoration: none;
 }
