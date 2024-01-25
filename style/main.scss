@@ -4,6 +4,10 @@
 	min-width: 0;
 }
 
+a:-webkit-any-link {
+	color: $text-color;
+}
+
 body {
 	margin: 0px 0px 0px 0px;
 	padding: 0;
@@ -12,7 +16,19 @@ body {
 	display: flex;
 	flex-direction: column;
 	background-color: $background-color;
-	color: $background-color;
+	color: $text-color;
+}
+
+a,
+button {
+	transition: background-color 0.3s ease, color 0.3s ease;
+	color: $text-color;
+	padding: 7px 7px;
+}
+
+a:hover,
+button:hover {
+	background-color: $hover-background-color;
 }
 
 main {
@@ -22,26 +38,28 @@ main {
 	backdrop-filter: blur(5px);
 }
 
+header,
+footer {
+	background-color: $primary-color;
+}
+
 header {
-	height: 60px;
-	background-color: $secondary-color;
 	border-bottom: 4px solid #000;
 	display: flex;
+	font-size: 20pt;
 	flex-direction: row;
 	align-items: center;
 	justify-content: space-between;
-	padding: 0 20px;
+	padding: 20px 20px;
 }
 
 .headerlinks {
 	width: 100%;
-	color: $text-color;
 	justify-content: space-between;
 	display: flex;
 }
 
 .headerlinks a {
-	color: $text-color;
 	margin: 0 10px;
 	text-decoration: none;
 }
@@ -54,7 +72,6 @@ header {
 .nav {
 	flex-grow: 1;
 	display: flex;
-	padding: 0 20px;
 }
 
 .nav a:last-child {
@@ -69,15 +86,11 @@ header {
 footer {
 	height: 50px;
 	margin-top: auto;
-	background-color: $secondary-color;
-	color: $text-color;
 	font-size: 14px;
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
 	padding: 0 20px;
-	box-shadow: 0px -3px 5px rgba(0, 0, 0, 0.1);
-	/* Added subtle shadow for depth */
 }
 
 footer a {
@@ -106,15 +119,17 @@ footer a:hover {
 #sign-in-form,
 #sign-up-form {
 	width: 50%;
-	/* Adjust the width as needed */
 	padding: 10px;
-	/* Optional padding */
 	box-sizing: border-box;
 	/* Ensures padding doesn't affect overall width */
 }
 
 #game-container {
+	justify-content: center;
+	align-items: center;
 	position: relative;
+	width: 100%;
+	height: 100%;
 }
 
 #bevy {
@@ -124,16 +139,47 @@ footer a:hover {
 	/* Just for visibility */
 }
 
-#run-button {
-	bottom: 50%;
-	left: 50%;
-	z-index: 10;
-	position: absolute;
-	//width: 100%;
+#run-button.invisible {
+	display: none;
 }
 
-.invisible {
-	display: none;
+#run-button {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	z-index: 10;
+	background-color: $accent-color;
+	padding: 15px 30px;
+	border: none;
+	font-size: 2.0rem;
+	font-weight: bold;
+	cursor: pointer;
+	transition: background-color 0.3s ease, transform 0.3s ease;
+	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+	text-decoration: none;
+}
+
+#run-button:hover {
+	background-color: darken($accent-color, 10%);
+	/* Darken the button on hover for feedback */
+	box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+	/* Slightly bigger shadow on hover for a "lifting" effect */
+	transform: translate(-50%, -50%) scale(1.05);
+	/* Slightly enlarge the button on hover */
+}
+
+#run-button:active {
+	transform: translate(-50%, -50%) scale(0.95);
+	/* Slightly shrink the button when clicked */
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+	/* Smaller shadow to give a "pressed" effect */
+}
+
+#run-button:focus {
+	outline: none;
+	/* Remove default outline and replace with a custom style if needed */
+	/* Add a custom focus style if the button is focusable, for accessibility */
 }
 
 .discord-link {
