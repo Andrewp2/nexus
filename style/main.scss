@@ -46,25 +46,19 @@ footer {
 header {
 	border-bottom: 4px solid #000;
 	display: flex;
+	justify-content: space-between;
 	font-size: 20pt;
 	flex-direction: row;
 	align-items: center;
-	justify-content: space-between;
 	padding: 20px 20px;
 }
 
-.headerlinks {
-	width: 100%;
-	justify-content: space-between;
-	display: flex;
-}
-
-.headerlinks a {
+header a {
 	margin: 0 10px;
 	text-decoration: none;
 }
 
-.headerlinks a:hover {
+header a:hover {
 	color: #e0e0e0;
 	/* Slightly darker color on hover */
 }
@@ -80,7 +74,7 @@ header {
 
 .authgroup {
 	margin-left: auto;
-	align-self: flex-end;
+	justify-self: center;
 }
 
 footer {
@@ -161,7 +155,7 @@ footer a:hover {
 }
 
 #run-button:hover {
-	background-color: darken($accent-color, 10%);
+	background-color: $hover-background-color;
 	/* Darken the button on hover for feedback */
 	box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
 	/* Slightly bigger shadow on hover for a "lifting" effect */

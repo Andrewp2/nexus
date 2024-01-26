@@ -6,7 +6,7 @@ $background-color: #1E1E2E;
 /* Near black */
 $accent-color: #D1BA74;
 /* Muted gold */
-$hover-background-color: #E1D190;
+$hover-background-color: darken($accent-color, 30%);
 /* Light muted gold for hover states */
 
 
