@@ -24,6 +24,7 @@ button {
 	transition: background-color 0.3s ease, color 0.3s ease;
 	color: $text-color;
 	padding: 7px 7px;
+	background-color: $primary-color;
 }
 
 a:hover,
@@ -182,3 +183,29 @@ footer a:hover {
 	padding: 15px 25px;
 	text-decoration: none;
 }
+
+#log-in-and-register-form {
+	width: 100%;
+	flex-direction: row;
+	display: flex;
+	box-sizing: border-box;
+}
+
+.log-in-form {
+	margin-left: 0%;
+}
+
+.sign-up-form {
+	margin-left: auto;
+}
+
+
+input {
+	padding: 4px 4px;
+	margin-top: 2px;
+	margin-bottom: 9px;
+}
+
+.log-in-button {}
+
+.sign-up-button {}

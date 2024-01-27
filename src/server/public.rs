@@ -54,3 +54,9 @@ pub async fn change_password(new_password: String) -> Result<(), ServerFnError> 
     change_password(new_password).await
 }
 
+#[server(CreateCheckout, "/api")]
+pub async fn create_checkout() -> Result<(), ServerFnError> {
+    use super::create_checkout::create_checkout;
+    create_checkout().await
+}
+

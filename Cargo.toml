@@ -43,6 +43,10 @@ gloo-net = { version = "0.5", features = ["http"] }
 web-sys = { version = "0.3.66", features = ["Window"] }
 js-sys = { version = "0.3.66" }
 wasm-bindgen-futures = { version = "*" }
+async-stripe = { version = "0.31", optional = true, default-features = false, features = [
+    "runtime-tokio-hyper",
+    "checkout",
+] }
 
 [features]
 hydrate = ["leptos/hydrate", "leptos_meta/hydrate", "leptos_router/hydrate"]
@@ -68,6 +72,7 @@ ssr = [
     "dep:rustrict",
     "dep:axum-extra",
     "dep:email_address",
+    "dep:async-stripe",
 ]
 
 # Defines a size-optimized profile for the WASM bundle in release mode
