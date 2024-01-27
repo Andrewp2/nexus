@@ -6,8 +6,9 @@ use crate::{
     pages::{
         about::AboutPage, community::CommunityPage, credits::CreditsPage,
         email_verification::EmailVerification,
-        email_verification_attempt::EmailVerificationAttempt, home::HomePage, login::LoginPage,
-        support_faq::SupportFAQPage, terms_and_conditions::TermsAndConditionsPage,
+        email_verification_attempt::EmailVerificationAttempt, home::HomePage,
+        login_and_signup::LoginAndSignupPage, support_faq::SupportFAQPage,
+        terms_and_conditions::TermsAndConditionsPage,
     },
     server::public::Login,
 };
@@ -48,7 +49,7 @@ pub fn App() -> impl IntoView {
                         <Route path="terms_and_conditions" view=TermsAndConditionsPage/>
                         <Route path="credits" view=CreditsPage/>
                         <Route path="support" view=SupportFAQPage/>
-                        <Route path="log_in" view=LoginPage/>
+                        <Route path="log_in" view=LoginAndSignupPage/>
                         <Route path="email_verification" view=EmailVerification/>
                         <Route path="email_verification/:email_uuid" view=EmailVerificationAttempt/>
                     </Routes>

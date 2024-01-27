@@ -6,7 +6,7 @@ use leptos_router::*;
 use crate::server::public::{Login, Signup};
 
 #[component]
-pub fn LoginPage() -> impl IntoView {
+pub fn LoginAndSignupPage() -> impl IntoView {
     let login = create_server_action::<Login>();
     let sign_up = create_server_action::<Signup>();
     let login_error: RwSignal<Option<Box<dyn Error>>> = create_rw_signal(Default::default());
