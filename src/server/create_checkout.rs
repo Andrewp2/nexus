@@ -15,6 +15,7 @@ pub async fn create_checkout() -> Result<(), ServerFnError> {
     let customer = Customer::create(
         &client,
         CreateCustomer {
+            // TODO: Get real email
             email: Some("test@fake-email.com"),
             description: Some(
                 "A fake customer that is used to illustrate the examples in async-stripe.",
