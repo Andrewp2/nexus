@@ -27,7 +27,7 @@ pub fn EmailVerificationAttempt() -> impl IntoView {
         None => view! { <div>hi there</div> },
         Some(s) => match s {
             Ok(_) => view! { <div>Verification was successful</div> },
-            Err(e) => view! { <div>error oh no</div> },
+            Err(_) => view! { <div>error oh no</div> },
         },
     };
 
