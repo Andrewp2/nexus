@@ -1,7 +1,7 @@
 use leptos::*;
 
 #[component]
-pub fn SupportFAQPage() -> impl IntoView {
+pub fn SupportFAQ() -> impl IntoView {
     view! {
         <h1>FAQ</h1>
         <ul>

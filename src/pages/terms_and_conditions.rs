@@ -1,7 +1,7 @@
 use leptos::*;
 
 #[component]
-pub fn TermsAndConditionsPage() -> impl IntoView {
+pub fn TermsAndConditions() -> impl IntoView {
     view! {
         <p>This is where the TOS and EULA will go once they are created.</p>
         <p>

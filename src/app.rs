@@ -4,11 +4,12 @@ use crate::{
     common::{footer::Footer, header::Header},
     error_template::{AppError, ErrorTemplate},
     pages::{
-        about::AboutPage, community::CommunityPage, credits::CreditsPage,
+        about::About, checkout::Checkout, checkout_cancel::CheckoutCancel,
+        checkout_success::CheckoutSuccess, community::Community, credits::Credits,
         email_verification::EmailVerification,
-        email_verification_attempt::EmailVerificationAttempt, home::HomePage,
-        login_and_signup::LoginAndSignupPage, support_faq::SupportFAQPage,
-        terms_and_conditions::TermsAndConditionsPage,
+        email_verification_attempt::EmailVerificationAttempt, home::Home,
+        login_and_signup::LoginAndSignup, support_faq::SupportFAQ,
+        terms_and_conditions::TermsAndConditions,
     },
     server::public::Login,
 };
@@ -33,6 +34,8 @@ pub fn App() -> impl IntoView {
             rel="stylesheet"
         />
 
+        <script src="https://js.stripe.com/v3/"></script>
+
         // content for this welcome page
         <Router fallback=|| {
             let mut outside_errors = Errors::default();
@@ -43,15 +46,18 @@ pub fn App() -> impl IntoView {
                 <Header/>
                 <main>
                     <Routes>
-                        <Route path="" view=HomePage/>
-                        <Route path="about" view=AboutPage/>
-                        <Route path="community" view=CommunityPage/>
-                        <Route path="terms_and_conditions" view=TermsAndConditionsPage/>
-                        <Route path="credits" view=CreditsPage/>
-                        <Route path="support" view=SupportFAQPage/>
-                        <Route path="log_in" view=LoginAndSignupPage/>
+                        <Route path="" view=Home/>
+                        <Route path="about" view=About/>
+                        <Route path="community" view=Community/>
+                        <Route path="terms_and_conditions" view=TermsAndConditions/>
+                        <Route path="credits" view=Credits/>
+                        <Route path="support" view=SupportFAQ/>
+                        <Route path="log_in" view=LoginAndSignup/>
                         <Route path="email_verification" view=EmailVerification/>
                         <Route path="email_verification/:email_uuid" view=EmailVerificationAttempt/>
+                        <Route path="checkout" view=Checkout/>
+                        <Route path="checkout/cancel" view=CheckoutCancel/>
+                        <Route path="checkout/success" view=CheckoutSuccess/>
                     </Routes>
                 </main>
                 <Footer/>

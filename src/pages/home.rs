@@ -4,7 +4,7 @@ use wasm_bindgen::{JsCast, JsValue, UnwrapThrowExt};
 use web_sys::*;
 
 #[component]
-pub fn HomePage() -> impl IntoView {
+pub fn Home() -> impl IntoView {
     let game_action = create_action(|_: &()| async move { run(()).await });
     let (invisible, set_invisible) = create_signal(false);
 

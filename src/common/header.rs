@@ -12,6 +12,9 @@ pub fn Header() -> impl IntoView {
                 <A href="about">"About"</A>
                 <A href="community">"Community"</A>
                 <A href="support">"Help"</A>
+                <A href="checkout" id="buy-game-nav">
+                    "Buy Game"
+                </A>
             </nav>
             <div class="authgroup">
                 <A href="log_in">"Log in"</A>
