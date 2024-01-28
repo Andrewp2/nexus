@@ -12,7 +12,10 @@ use crate::{
     site::constants::SITE_FULL_DOMAIN,
 };
 
+const PRICE_OF_GAME_IN_CENTS: i64 = 3000;
+
 pub async fn create_checkout() -> Result<String, ServerFnError> {
+    log::error!("hello");
     let session_id_cookie = get_session_cookie().await?;
     let dynamo_client = dynamo_client()?;
     let (valid, email) = check_if_session_is_valid(session_id_cookie, &dynamo_client).await?;
@@ -64,7 +67,7 @@ pub async fn create_checkout() -> Result<String, ServerFnError> {
         String::from("async-stripe"),
         String::from("true"),
     )]));
-    create_price.unit_amount = Some(3000);
+    create_price.unit_amount = Some(PRICE_OF_GAME_IN_CENTS);
     create_price.expand = &["product"];
     let price = Price::create(&client, create_price)
         .await
@@ -73,7 +76,7 @@ pub async fn create_checkout() -> Result<String, ServerFnError> {
     log::info!(
         "created a product {:?} at price {} {}",
         product.name.unwrap_or("Product has no name!".to_owned()),
-        price.unit_amount.unwrap_or(0i64) / 100,
+        price.unit_amount.unwrap_or(PRICE_OF_GAME_IN_CENTS) / 100,
         price.currency.unwrap_or(Currency::USD)
     );
 
