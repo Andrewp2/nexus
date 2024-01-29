@@ -15,22 +15,22 @@ use crate::{
 const PRICE_OF_GAME_IN_CENTS: i64 = 3000;
 
 pub async fn create_checkout() -> Result<String, ServerFnError> {
-    log::error!("hello");
-    let session_id_cookie = get_session_cookie().await?;
-    let dynamo_client = dynamo_client()?;
-    let (valid, email) = check_if_session_is_valid(session_id_cookie, &dynamo_client).await?;
-    if !valid {
-        return Err(ServerFnError::ServerError(
-            NexusError::Unhandled.to_string(),
-        ));
-    }
+    // let session_id_cookie = get_session_cookie().await?;
+    // let dynamo_client = dynamo_client()?;
+    // let (valid, email) = check_if_session_is_valid(session_id_cookie, &dynamo_client).await?;
+    // if !valid {
+    //     return Err(ServerFnError::ServerError(
+    //         NexusError::Unhandled.to_string(),
+    //     ));
+    // }
     let secret_key = std::env::var("STRIPE_SECRET_KEY").expect("Missing STRIPE_SECRET_KEY in env");
     let client = Client::new(secret_key);
 
     let customer = Customer::create(
         &client,
         CreateCustomer {
-            email: Some(email.as_str()),
+            //email: Some(email.as_str()),
+            email: Some("example@example.com"),
             description: Some(
                 "A fake customer that is used to illustrate the examples in async-stripe.",
             ),
@@ -43,7 +43,10 @@ pub async fn create_checkout() -> Result<String, ServerFnError> {
         },
     )
     .await
-    .map_err(|_| ServerFnError::ServerError(NexusError::Unhandled.to_string()))?;
+    .map_err(|e| {
+        log::error!("{:?}", e);
+        ServerFnError::ServerError(NexusError::Unhandled.to_string())
+    })?;
 
     log::info!(
         "created a customer at https://dashboard.stripe.com/test/customers/{}",
@@ -58,7 +61,10 @@ pub async fn create_checkout() -> Result<String, ServerFnError> {
     )]));
     let product = Product::create(&client, create_product)
         .await
-        .map_err(|_| ServerFnError::ServerError(NexusError::Unhandled.to_string()))?;
+        .map_err(|e| {
+            log::error!("{:?}", e);
+            ServerFnError::ServerError(NexusError::Unhandled.to_string())
+        })?;
 
     // and add a price for it in USD
     let mut create_price = CreatePrice::new(Currency::USD);
@@ -69,9 +75,10 @@ pub async fn create_checkout() -> Result<String, ServerFnError> {
     )]));
     create_price.unit_amount = Some(PRICE_OF_GAME_IN_CENTS);
     create_price.expand = &["product"];
-    let price = Price::create(&client, create_price)
-        .await
-        .map_err(|_| ServerFnError::ServerError(NexusError::Unhandled.to_string()))?;
+    let price = Price::create(&client, create_price).await.map_err(|e| {
+        log::error!("{:?}", e);
+        ServerFnError::ServerError(NexusError::Unhandled.to_string())
+    })?;
 
     log::info!(
         "created a product {:?} at price {} {}",
@@ -82,8 +89,10 @@ pub async fn create_checkout() -> Result<String, ServerFnError> {
 
     // finally, create a checkout session for this product / price
     let mut params = CreateCheckoutSession::new();
-    let cancel_url = format!("http://{}/cancel", SITE_FULL_DOMAIN);
-    params.cancel_url = Some(&cancel_url);
+    //let cancel_url = format!("http://{}/cancel", SITE_FULL_DOMAIN);
+    //params.cancel_url = Some(&cancel_url);
+    let redirect_url = format!("http://{}/download", SITE_FULL_DOMAIN);
+    params.return_url = Some(&redirect_url);
     params.customer = Some(customer.id);
     params.mode = Some(CheckoutSessionMode::Payment);
     params.line_items = Some(vec![CreateCheckoutSessionLineItems {
@@ -96,7 +105,10 @@ pub async fn create_checkout() -> Result<String, ServerFnError> {
 
     let checkout_session = CheckoutSession::create(&client, params)
         .await
-        .map_err(|_| ServerFnError::ServerError(NexusError::Unhandled.to_string()))?;
+        .map_err(|e| {
+            log::error!("{:?}", e);
+            ServerFnError::ServerError(NexusError::Unhandled.to_string())
+        })?;
 
     return match checkout_session.client_secret {
         Some(secret) => Ok(secret),
