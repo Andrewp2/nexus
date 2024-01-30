@@ -75,6 +75,9 @@ ssr = [
     "dep:async-stripe",
 ]
 
+[target.'cfg(all(target_os = "linux", any(target_env = "musl", target_arch = "arm", target_arch = "aarch64")))'.dependencies]
+openssl = { version = "0.10", features = ["vendored"] }
+
 # Defines a size-optimized profile for the WASM bundle in release mode
 [profile.wasm-release]
 inherits = "release"
