@@ -109,7 +109,7 @@ pub async fn create_checkout() -> Result<String, ServerFnError> {
             log::error!("{:?}", e);
             ServerFnError::ServerError(NexusError::Unhandled.to_string())
         })?;
-
+    log::info!("return");
     return match checkout_session.client_secret {
         Some(secret) => Ok(secret),
         None => Err(ServerFnError::ServerError(

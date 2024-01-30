@@ -11,7 +11,8 @@ pub fn Checkout() -> impl IntoView {
         "
     async function startStripeCheckout(clientSecret) {{
        const stripe = Stripe('{}');
-       await stripe.redirectToCheckout({{sessionId: clientSecret}});
+       let checkout = await stripe.initEmbeddedCheckout({{clientSecret: clientSecret}});
+       checkout.mount('#checkout');
     }}
     ",
         std::env!("STRIPE_PUBLIC_KEY")

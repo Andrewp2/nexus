@@ -25,6 +25,7 @@ button {
 	color: $text-color;
 	padding: 7px 7px;
 	background-color: $primary-color;
+	border-radius: 8px;
 }
 
 a:hover,
@@ -151,30 +152,23 @@ footer a:hover {
 	font-weight: bold;
 	cursor: pointer;
 	transition: background-color 0.3s ease, transform 0.3s ease;
-	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+	box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
 	text-decoration: none;
 }
 
 #run-button:hover {
 	background-color: $hover-background-color;
-	/* Darken the button on hover for feedback */
 	box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
-	/* Slightly bigger shadow on hover for a "lifting" effect */
 	transform: translate(-50%, -50%) scale(1.05);
-	/* Slightly enlarge the button on hover */
 }
 
 #run-button:active {
 	transform: translate(-50%, -50%) scale(0.95);
-	/* Slightly shrink the button when clicked */
 	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-	/* Smaller shadow to give a "pressed" effect */
 }
 
 #run-button:focus {
 	outline: none;
-	/* Remove default outline and replace with a custom style if needed */
-	/* Add a custom focus style if the button is focusable, for accessibility */
 }
 
 .discord-link {
@@ -199,7 +193,6 @@ footer a:hover {
 	margin-left: auto;
 }
 
-
 input {
 	padding: 4px 4px;
 	margin-top: 2px;
@@ -208,6 +201,10 @@ input {
 
 #buy-game-nav {
 	background-color: $accent-color;
+}
+
+#buy-game-nav:hover {
+	background-color: $hover-background-color;
 }
 
 .log-in-button {}
