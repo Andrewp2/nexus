@@ -34,47 +34,44 @@ async fn set_expiry_for_email(email: String, client: &Client) -> Result<(), Serv
 
     match db_update_result {
         Ok(_) => Ok(()),
-        Err(e) => Err(ServerFnError::ServerError(
-            match e.into_service_error() {
-                UpdateItemError::ConditionalCheckFailedException(e2) => {
-                    log::error!("set_expiry_for_mail Unexpected Error: {:?}", e2);
-                    NexusError::Unhandled.to_string()
-                }
-                UpdateItemError::InternalServerError(e2) => {
-                    log::error!("set_expiry_for_mail Unexpected Error: {:?}", e2);
-                    NexusError::Unhandled.to_string()
-                }
-                UpdateItemError::InvalidEndpointException(e2) => {
-                    log::error!("set_expiry_for_mail Unexpected Error: {:?}", e2);
-                    NexusError::Unhandled.to_string()
-                }
-                UpdateItemError::ItemCollectionSizeLimitExceededException(e2) => {
-                    log::error!("set_expiry_for_mail Unexpected Error: {:?}", e2);
-                    NexusError::Unhandled.to_string()
-                }
-                UpdateItemError::ProvisionedThroughputExceededException(e2) => {
-                    log::error!("set_expiry_for_mail Unexpected Error: {:?}", e2);
-                    NexusError::Unhandled.to_string()
-                }
-                UpdateItemError::RequestLimitExceeded(e2) => {
-                    log::error!("set_expiry_for_mail Unexpected Error: {:?}", e2);
-                    NexusError::Unhandled.to_string()
-                }
-                UpdateItemError::ResourceNotFoundException(e2) => {
-                    log::error!("set_expiry_for_mail Unexpected Error: {:?}", e2);
-                    NexusError::Unhandled.to_string()
-                }
-                UpdateItemError::TransactionConflictException(e2) => {
-                    log::error!("set_expiry_for_mail Unexpected Error: {:?}", e2);
-                    NexusError::Unhandled.to_string()
-                }
-                e2 => {
-                    log::error!("set_expiry_for_mail Unexpected Error: {:?}", e2);
-                    NexusError::Unhandled.to_string()
-                }
+        Err(e) => Err(ServerFnError::new(match e.into_service_error() {
+            UpdateItemError::ConditionalCheckFailedException(e2) => {
+                log::error!("set_expiry_for_mail Unexpected Error: {:?}", e2);
+                NexusError::Unhandled
             }
-            .to_string(),
-        )),
+            UpdateItemError::InternalServerError(e2) => {
+                log::error!("set_expiry_for_mail Unexpected Error: {:?}", e2);
+                NexusError::Unhandled
+            }
+            UpdateItemError::InvalidEndpointException(e2) => {
+                log::error!("set_expiry_for_mail Unexpected Error: {:?}", e2);
+                NexusError::Unhandled
+            }
+            UpdateItemError::ItemCollectionSizeLimitExceededException(e2) => {
+                log::error!("set_expiry_for_mail Unexpected Error: {:?}", e2);
+                NexusError::Unhandled
+            }
+            UpdateItemError::ProvisionedThroughputExceededException(e2) => {
+                log::error!("set_expiry_for_mail Unexpected Error: {:?}", e2);
+                NexusError::Unhandled
+            }
+            UpdateItemError::RequestLimitExceeded(e2) => {
+                log::error!("set_expiry_for_mail Unexpected Error: {:?}", e2);
+                NexusError::Unhandled
+            }
+            UpdateItemError::ResourceNotFoundException(e2) => {
+                log::error!("set_expiry_for_mail Unexpected Error: {:?}", e2);
+                NexusError::Unhandled
+            }
+            UpdateItemError::TransactionConflictException(e2) => {
+                log::error!("set_expiry_for_mail Unexpected Error: {:?}", e2);
+                NexusError::Unhandled
+            }
+            e2 => {
+                log::error!("set_expiry_for_mail Unexpected Error: {:?}", e2);
+                NexusError::Unhandled
+            }
+        })),
     }
 }
 

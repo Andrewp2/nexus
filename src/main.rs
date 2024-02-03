@@ -1,54 +1,48 @@
-#[cfg(feature = "ssr")]
-mod utilities {
-    use axum::extract::{RawQuery, State};
-    use axum::response::IntoResponse;
-    use axum::{
-        body::Body as AxumBody,
-        extract::Path,
-        http::{header::HeaderMap, Request},
-        response::Response,
-    };
-    use leptos::logging::log;
-    use leptos::provide_context;
-    use leptos_axum::handle_server_fns_with_context;
-    use nexus::app::App;
-    use nexus::app_state::AppState;
+use axum::{
+    body::Body as AxumBody,
+    extract::{Path, RawQuery, State},
+    http::Request,
+    response::{IntoResponse, Response},
+    routing::get,
+    Router,
+};
+use http::HeaderMap;
+use leptos::{get_configuration, logging::log, provide_context};
+use leptos_axum::{generate_route_list, handle_server_fns_with_context, LeptosRoutes};
+use nexus::{app::App, app_state::AppState};
+use stripe::Client as StripeClient;
 
-    pub async fn server_fn_handler(
-        State(app_state): State<AppState>,
-        path: Path<String>,
-        headers: HeaderMap,
-        raw_query: RawQuery,
-        request: Request<AxumBody>,
-    ) -> impl IntoResponse {
-        log!("{:?}", path);
+pub async fn server_fn_handler(
+    State(app_state): State<AppState>,
+    path: Path<String>,
+    headers: HeaderMap,
+    raw_query: RawQuery,
+    request: Request<AxumBody>,
+) -> impl IntoResponse {
+    log!("{:?}", path);
 
-        handle_server_fns_with_context(
-            path,
-            headers,
-            raw_query,
-            move || {
-                provide_context(app_state.dynamodb_client.clone());
-            },
-            request,
-        )
-        .await
-    }
+    handle_server_fns_with_context(
+        move || {
+            provide_context(app_state.dynamodb_client.clone());
+        },
+        request,
+    )
+    .await
+}
 
-    pub async fn leptos_routes_handler(
-        State(app_state): State<AppState>,
-        req: Request<AxumBody>,
-    ) -> Response {
-        let handler = leptos_axum::render_route_with_context(
-            app_state.leptos_options.clone(),
-            app_state.routes.clone(),
-            move || {
-                provide_context(app_state.dynamodb_client.clone());
-            },
-            App,
-        );
-        handler(req).await.into_response()
-    }
+pub async fn leptos_routes_handler(
+    State(app_state): State<AppState>,
+    req: Request<AxumBody>,
+) -> Response {
+    let handler = leptos_axum::render_route_with_context(
+        app_state.leptos_options.clone(),
+        app_state.routes.clone(),
+        move || {
+            provide_context(app_state.dynamodb_client.clone());
+        },
+        App,
+    );
+    handler(req).await.into_response()
 }
 
 #[cfg(feature = "ssr")]
@@ -60,7 +54,7 @@ async fn main() {
     use axum::{routing::get, Router};
     use leptos::get_configuration;
     use leptos_axum::{generate_route_list, LeptosRoutes};
-    use nexus::{app::App, app_state::AppState, fileserv::file_and_error_handler};
+    use nexus::{app::App, app_state::AppState, fileserv::file_and_error_handler, server};
 
     simple_logger::init_with_level(log::Level::Info).expect("couldn't initialize logging");
 
@@ -78,20 +72,27 @@ async fn main() {
 
     let aws_sdk_config = aws_config::load_defaults(BehaviorVersion::latest()).await;
 
+    let secret_key = std::env::var("STRIPE_SECRET_KEY").expect("Missing STRIPE_SECRET_KEY in env");
+    let stripe_client = StripeClient::new(secret_key);
     let app_state = AppState {
         leptos_options,
         routes: routes.clone(),
         dynamodb_client: DynamoClient::new(&aws_sdk_config).into(),
         ses_client: SesClient::new(&aws_sdk_config).into(),
+        stripe_client,
     };
 
     // build our application with a route
     let app = Router::new()
         .route(
-            "/api/*fn_name",
-            get(utilities::server_fn_handler).post(utilities::server_fn_handler),
+            "/api/webhooks/stripe",
+            post(server::stripe_webhook::stripe_webhook),
         )
-        .leptos_routes_with_handler(routes, get(utilities::leptos_routes_handler))
+        .route(
+            "/api/*fn_name",
+            get(server_fn_handler).post(server_fn_handler),
+        )
+        .leptos_routes_with_handler(routes, get(leptos_routes_handler))
         .fallback(file_and_error_handler)
         .with_state(app_state);
 
@@ -99,8 +100,8 @@ async fn main() {
     #[cfg(debug_assertions)]
     {
         log::info!("listening on http://{}", &addr);
-        axum::Server::bind(&addr)
-            .serve(app.into_make_service())
+        let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
+        axum::serve(listener, app.into_make_service())
             .await
             .unwrap();
     }

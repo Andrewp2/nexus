@@ -26,9 +26,7 @@ use uuid::Uuid;
 /// Starts a request to change email
 pub async fn change_email_request(new_email: String) -> Result<(), ServerFnError> {
     if !EmailAddress::is_valid(&new_email) {
-        return Err(ServerFnError::ServerError(
-            NexusError::BadEmailAddress.to_string(),
-        ));
+        return Err(ServerFnError::new(NexusError::BadEmailAddress));
     }
     let session_id_cookie = get_session_cookie().await?;
     let client = dynamo_client()?;
@@ -44,65 +42,60 @@ pub async fn change_email_request(new_email: String) -> Result<(), ServerFnError
         .await;
     let user = match old_user_query {
         Ok(o) => Ok(o),
-        Err(e) => Err(ServerFnError::ServerError(
-            match e.into_service_error() {
-                QueryError::InternalServerError(e2) => {
-                    log::error!("{:?}", e2);
-                    NexusError::Unhandled
-                }
-                QueryError::InvalidEndpointException(e2) => {
-                    log::error!("{:?}", e2);
-                    NexusError::Unhandled
-                }
-                QueryError::ProvisionedThroughputExceededException(e2) => {
-                    log::error!("{:?}", e2);
-                    NexusError::Unhandled
-                }
-                QueryError::RequestLimitExceeded(e2) => {
-                    log::error!("{:?}", e2);
-                    NexusError::Unhandled
-                }
-                QueryError::ResourceNotFoundException(e2) => {
-                    log::error!("{:?}", e2);
-                    NexusError::Unhandled
-                }
-                e2 => {
-                    log::error!("{:?}", e2);
-                    NexusError::Unhandled
-                }
+        Err(e) => Err(ServerFnError::new(match e.into_service_error() {
+            QueryError::InternalServerError(e2) => {
+                log::error!("{:?}", e2);
+                NexusError::Unhandled
             }
-            .to_string(),
-        )),
+            QueryError::InvalidEndpointException(e2) => {
+                log::error!("{:?}", e2);
+                NexusError::Unhandled
+            }
+            QueryError::ProvisionedThroughputExceededException(e2) => {
+                log::error!("{:?}", e2);
+                NexusError::Unhandled
+            }
+            QueryError::RequestLimitExceeded(e2) => {
+                log::error!("{:?}", e2);
+                NexusError::Unhandled
+            }
+            QueryError::ResourceNotFoundException(e2) => {
+                log::error!("{:?}", e2);
+                NexusError::Unhandled
+            }
+            e2 => {
+                log::error!("{:?}", e2);
+                NexusError::Unhandled
+            }
+        })),
     }?;
     let items = user.items.ok_or_else(|| {
         log::error!("Could not get items from user");
-        ServerFnError::ServerError(NexusError::Unhandled.to_string())
+        ServerFnError::new(NexusError::Unhandled)
     })?;
     let attributes = items.first().ok_or_else(|| {
         log::error!("Could not get first item from items");
-        ServerFnError::ServerError(NexusError::Unhandled.to_string())
+        ServerFnError::new(NexusError::Unhandled)
     })?;
     let session_expiry = attributes
         .get(SESSION_EXPIRY)
         .ok_or_else(|| {
             log::error!("Could not get session expiry");
-            ServerFnError::ServerError(NexusError::Unhandled.to_string())
+            ServerFnError::new(NexusError::Unhandled)
         })?
         .as_n()
         .map_err(|e| {
             log::error!("Could not convert session expiry to number {:?}", e);
-            ServerFnError::ServerError(NexusError::Unhandled.to_string())
+            ServerFnError::new(NexusError::Unhandled)
         })?
         .parse::<i64>()
         .map_err(|e| {
             log::error!("Could not parse sesion expiry number as i64 {:?}", e);
-            ServerFnError::ServerError(NexusError::Unhandled.to_string())
+            ServerFnError::new(NexusError::Unhandled)
         })?;
     let now = Utc::now().timestamp();
     if now >= session_expiry {
-        return Err(ServerFnError::ServerError(
-            NexusError::InvalidSession.to_string(),
-        ));
+        return Err(ServerFnError::new(NexusError::InvalidSession));
     }
     let check_email_not_already_exists_expression =
         format!("attribute_not_exists({})", table_attributes::EMAIL);
@@ -125,7 +118,7 @@ pub async fn change_email_request(new_email: String) -> Result<(), ServerFnError
 
     match put_resp {
         Ok(_) => Ok(()),
-        Err(e) => Err(ServerFnError::ServerError(
+        Err(e) => Err(ServerFnError::new(
             match e.into_service_error() {
                 PutItemError::ConditionalCheckFailedException(e2) => {
                     log::warn!("{:?}", e2);
@@ -205,35 +198,32 @@ If you did not request an email address change, please change your password.",
 
 fn handle_send_email_error(e: SdkError<SendEmailError>, new_email: String) -> ServerFnError {
     log::error!("Warning, we created a new account for {} but we weren't able to send them the verification email!", new_email);
-    ServerFnError::ServerError(
-        match e.into_service_error() {
-            SendEmailError::AccountSendingPausedException(e2) => {
-                log::error!("handle_verify_change_email_request_error {:?}", e2);
-                NexusError::Unhandled.to_string()
-            }
-            SendEmailError::ConfigurationSetDoesNotExistException(e2) => {
-                log::error!("handle_verify_change_email_request_error {:?}", e2);
-                NexusError::Unhandled.to_string()
-            }
-            SendEmailError::ConfigurationSetSendingPausedException(e2) => {
-                log::error!("handle_verify_change_email_request_error {:?}", e2);
-                NexusError::Unhandled.to_string()
-            }
-            SendEmailError::MailFromDomainNotVerifiedException(e2) => {
-                log::error!("handle_verify_change_email_request_error {:?}", e2);
-                NexusError::Unhandled.to_string()
-            }
-            SendEmailError::MessageRejected(e2) => {
-                log::error!("handle_verify_change_email_request_error {:?}", e2);
-                NexusError::Unhandled.to_string()
-            }
-            e2 => {
-                log::error!("handle_verify_change_email_request_error {:?}", e2);
-                NexusError::Unhandled.to_string()
-            }
+    ServerFnError::new(match e.into_service_error() {
+        SendEmailError::AccountSendingPausedException(e2) => {
+            log::error!("handle_verify_change_email_request_error {:?}", e2);
+            NexusError::Unhandled
         }
-        .to_string(),
-    )
+        SendEmailError::ConfigurationSetDoesNotExistException(e2) => {
+            log::error!("handle_verify_change_email_request_error {:?}", e2);
+            NexusError::Unhandled
+        }
+        SendEmailError::ConfigurationSetSendingPausedException(e2) => {
+            log::error!("handle_verify_change_email_request_error {:?}", e2);
+            NexusError::Unhandled
+        }
+        SendEmailError::MailFromDomainNotVerifiedException(e2) => {
+            log::error!("handle_verify_change_email_request_error {:?}", e2);
+            NexusError::Unhandled
+        }
+        SendEmailError::MessageRejected(e2) => {
+            log::error!("handle_verify_change_email_request_error {:?}", e2);
+            NexusError::Unhandled
+        }
+        e2 => {
+            log::error!("handle_verify_change_email_request_error {:?}", e2);
+            NexusError::Unhandled
+        }
+    })
 }
 
 async fn change_value(name: &str, value: AttributeValue) -> Result<(), ServerFnError> {
@@ -251,47 +241,44 @@ async fn change_value(name: &str, value: AttributeValue) -> Result<(), ServerFnE
         .await;
     match update_resp {
         Ok(_) => Ok(()),
-        Err(e) => Err(ServerFnError::ServerError(
-            match e.into_service_error() {
-                UpdateItemError::ConditionalCheckFailedException(e2) => {
-                    log::error!("{:?}", e2);
-                    NexusError::Unhandled
-                }
-                UpdateItemError::InternalServerError(e2) => {
-                    log::error!("{:?}", e2);
-                    NexusError::Unhandled
-                }
-                UpdateItemError::InvalidEndpointException(e2) => {
-                    log::error!("{:?}", e2);
-                    NexusError::Unhandled
-                }
-                UpdateItemError::ItemCollectionSizeLimitExceededException(e2) => {
-                    log::error!("{:?}", e2);
-                    NexusError::Unhandled
-                }
-                UpdateItemError::ProvisionedThroughputExceededException(e2) => {
-                    log::error!("{:?}", e2);
-                    NexusError::Unhandled
-                }
-                UpdateItemError::RequestLimitExceeded(e2) => {
-                    log::error!("{:?}", e2);
-                    NexusError::Unhandled
-                }
-                UpdateItemError::ResourceNotFoundException(e2) => {
-                    log::error!("{:?}", e2);
-                    NexusError::Unhandled
-                }
-                UpdateItemError::TransactionConflictException(e2) => {
-                    log::error!("{:?}", e2);
-                    NexusError::Unhandled
-                }
-                e2 => {
-                    log::error!("{:?}", e2);
-                    NexusError::Unhandled
-                }
+        Err(e) => Err(ServerFnError::new(match e.into_service_error() {
+            UpdateItemError::ConditionalCheckFailedException(e2) => {
+                log::error!("{:?}", e2);
+                NexusError::Unhandled
             }
-            .to_string(),
-        )),
+            UpdateItemError::InternalServerError(e2) => {
+                log::error!("{:?}", e2);
+                NexusError::Unhandled
+            }
+            UpdateItemError::InvalidEndpointException(e2) => {
+                log::error!("{:?}", e2);
+                NexusError::Unhandled
+            }
+            UpdateItemError::ItemCollectionSizeLimitExceededException(e2) => {
+                log::error!("{:?}", e2);
+                NexusError::Unhandled
+            }
+            UpdateItemError::ProvisionedThroughputExceededException(e2) => {
+                log::error!("{:?}", e2);
+                NexusError::Unhandled
+            }
+            UpdateItemError::RequestLimitExceeded(e2) => {
+                log::error!("{:?}", e2);
+                NexusError::Unhandled
+            }
+            UpdateItemError::ResourceNotFoundException(e2) => {
+                log::error!("{:?}", e2);
+                NexusError::Unhandled
+            }
+            UpdateItemError::TransactionConflictException(e2) => {
+                log::error!("{:?}", e2);
+                NexusError::Unhandled
+            }
+            e2 => {
+                log::error!("{:?}", e2);
+                NexusError::Unhandled
+            }
+        })),
     }
 }
 
@@ -299,9 +286,7 @@ pub async fn change_display_name(new_display_name: String) -> Result<(), ServerF
     let mut censor = Censor::from_str(&new_display_name);
     let censor_type = censor.analyze();
     if censor_type.is(Type::MODERATE_OR_HIGHER) {
-        return Err(ServerFnError::ServerError(
-            NexusError::DisplayNameInappropriate.to_string(),
-        ));
+        return Err(ServerFnError::new(NexusError::DisplayNameInappropriate));
     }
     let display_name_av = AttributeValue::S(new_display_name);
     change_value(table_attributes::DISPLAY_NAME, display_name_av).await

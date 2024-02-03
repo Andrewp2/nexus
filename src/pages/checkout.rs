@@ -33,7 +33,11 @@ pub fn Checkout() -> impl IntoView {
                         <div id="checkout"></div>
                         <ErrorBoundary fallback=|errors| view! { <div class="error"></div> }>
                             <script>
-                                {format!("startStripeCheckout('{}');", client_secret.unwrap())}
+                                {format!(
+                                    "startStripeCheckout('{}');",
+                                    client_secret.unwrap_or("hi".to_owned()),
+                                )}
+
                             </script>
                         </ErrorBoundary>
                     </div>

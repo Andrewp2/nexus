@@ -13,22 +13,6 @@ pub mod constants {
         pub const EMAIL_VERIFICATION_UUID: &str = "email_verification_uuid";
     }
 
-    use std::env;
-
-    pub fn get_table_name() -> &'static str {
-        match env::var("STAGE") {
-            Ok(stage) => match stage.as_str() {
-                "prod" => return "Users",
-                "staging" => "Users-staging",
-                "dev" => "Users-dev",
-                _ => panic!("STAGE environment variable not correct"),
-            },
-            Err(_) => {
-                panic!("Cannot get STAGE");
-            }
-        }
-    }
-
     pub mod index {
         pub const GAMES_BOUGHT: &str = "games_bought-index";
         pub const USER_UUID: &str = "user_uuid-index";

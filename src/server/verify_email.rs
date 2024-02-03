@@ -1,6 +1,7 @@
 use super::utilities::{dynamo_client, extract_email_from_query, ses_client};
 use crate::{
     dynamo::constants::*,
+    env_var::get_table_name,
     errors::NexusError,
     site::constants::{SITE_DOMAIN, SITE_EMAIL_ADDRESS, SITE_FULL_DOMAIN},
 };
@@ -61,35 +62,32 @@ If this was not you, you may ignore this email.",
 }
 
 fn handle_send_email_error(e: SdkError<SendEmailError>) -> ServerFnError {
-    ServerFnError::ServerError(
-        match e.into_service_error() {
-            SendEmailError::AccountSendingPausedException(e) => {
-                log::error!("{:?}", e);
-                NexusError::GenericSesError
-            }
-            SendEmailError::ConfigurationSetDoesNotExistException(e) => {
-                log::error!("{:?}", e);
-                NexusError::GenericSesError
-            }
-            SendEmailError::ConfigurationSetSendingPausedException(e) => {
-                log::error!("{:?}", e);
-                NexusError::GenericSesError
-            }
-            SendEmailError::MailFromDomainNotVerifiedException(e) => {
-                log::error!("{:?}", e);
-                NexusError::GenericSesError
-            }
-            SendEmailError::MessageRejected(e) => {
-                log::error!("{:?}", e);
-                NexusError::GenericSesError
-            }
-            e => {
-                log::error!("{:?}", e);
-                NexusError::GenericSesError
-            }
+    ServerFnError::new(match e.into_service_error() {
+        SendEmailError::AccountSendingPausedException(e) => {
+            log::error!("{:?}", e);
+            NexusError::GenericSesError
         }
-        .to_string(),
-    )
+        SendEmailError::ConfigurationSetDoesNotExistException(e) => {
+            log::error!("{:?}", e);
+            NexusError::GenericSesError
+        }
+        SendEmailError::ConfigurationSetSendingPausedException(e) => {
+            log::error!("{:?}", e);
+            NexusError::GenericSesError
+        }
+        SendEmailError::MailFromDomainNotVerifiedException(e) => {
+            log::error!("{:?}", e);
+            NexusError::GenericSesError
+        }
+        SendEmailError::MessageRejected(e) => {
+            log::error!("{:?}", e);
+            NexusError::GenericSesError
+        }
+        e => {
+            log::error!("{:?}", e);
+            NexusError::GenericSesError
+        }
+    })
 }
 
 /// Verifies a given email_uuid
@@ -133,78 +131,72 @@ pub async fn verify_email(email_uuid: String) -> Result<(), ServerFnError> {
 }
 
 fn handle_email_query_error(e: aws_sdk_dynamodb::error::SdkError<QueryError>) -> ServerFnError {
-    ServerFnError::ServerError(
-        match e.into_service_error() {
-            QueryError::InternalServerError(e) => {
-                log::error!("{:?}", e);
-                NexusError::GenericDynamoServiceError
-            }
-            QueryError::InvalidEndpointException(e) => {
-                log::error!("{:?}", e);
-                NexusError::GenericDynamoServiceError
-            }
-            QueryError::ProvisionedThroughputExceededException(e) => {
-                log::error!("{:?}", e);
-                NexusError::GenericDynamoServiceError
-            }
-            QueryError::RequestLimitExceeded(e) => {
-                log::error!("{:?}", e);
-                NexusError::GenericDynamoServiceError
-            }
-            QueryError::ResourceNotFoundException(e) => {
-                log::error!("{:?}", e);
-                NexusError::GenericDynamoServiceError
-            }
-            e => {
-                log::error!("{:?}", e);
-                NexusError::GenericDynamoServiceError
-            }
+    ServerFnError::new(match e.into_service_error() {
+        QueryError::InternalServerError(e) => {
+            log::error!("{:?}", e);
+            NexusError::GenericDynamoServiceError
         }
-        .to_string(),
-    )
+        QueryError::InvalidEndpointException(e) => {
+            log::error!("{:?}", e);
+            NexusError::GenericDynamoServiceError
+        }
+        QueryError::ProvisionedThroughputExceededException(e) => {
+            log::error!("{:?}", e);
+            NexusError::GenericDynamoServiceError
+        }
+        QueryError::RequestLimitExceeded(e) => {
+            log::error!("{:?}", e);
+            NexusError::GenericDynamoServiceError
+        }
+        QueryError::ResourceNotFoundException(e) => {
+            log::error!("{:?}", e);
+            NexusError::GenericDynamoServiceError
+        }
+        e => {
+            log::error!("{:?}", e);
+            NexusError::GenericDynamoServiceError
+        }
+    })
 }
 
 fn handle_verify_email_update_error(e: SdkError<UpdateItemError>) -> ServerFnError {
-    ServerFnError::ServerError(
-        match e.into_service_error() {
-            UpdateItemError::ConditionalCheckFailedException(e) => {
-                log::error!("{:?}", e);
-                NexusError::GenericDynamoServiceError
-            }
-            UpdateItemError::InternalServerError(e) => {
-                log::error!("{:?}", e);
-                NexusError::GenericDynamoServiceError
-            }
-            UpdateItemError::InvalidEndpointException(e) => {
-                log::error!("{:?}", e);
-                NexusError::GenericDynamoServiceError
-            }
-            UpdateItemError::ItemCollectionSizeLimitExceededException(e) => {
-                log::error!("{:?}", e);
-                NexusError::GenericDynamoServiceError
-            }
-            UpdateItemError::ProvisionedThroughputExceededException(e) => {
-                log::error!("{:?}", e);
-                NexusError::GenericDynamoServiceError
-            }
-            UpdateItemError::RequestLimitExceeded(e) => {
-                log::error!("{:?}", e);
-                NexusError::GenericDynamoServiceError
-            }
-            UpdateItemError::ResourceNotFoundException(e) => {
-                log::error!("{:?}", e);
-                NexusError::GenericDynamoServiceError
-            }
-            UpdateItemError::TransactionConflictException(e) => {
-                log::error!("{:?}", e);
-                NexusError::GenericDynamoServiceError
-            }
-            e => {
-                log::error!("{:?}", e);
-                NexusError::GenericDynamoServiceError
-            }
+    ServerFnError::new(match e.into_service_error() {
+        UpdateItemError::ConditionalCheckFailedException(e) => {
+            log::error!("{:?}", e);
+            NexusError::GenericDynamoServiceError
         }
-        .to_string(),
-    )
+        UpdateItemError::InternalServerError(e) => {
+            log::error!("{:?}", e);
+            NexusError::GenericDynamoServiceError
+        }
+        UpdateItemError::InvalidEndpointException(e) => {
+            log::error!("{:?}", e);
+            NexusError::GenericDynamoServiceError
+        }
+        UpdateItemError::ItemCollectionSizeLimitExceededException(e) => {
+            log::error!("{:?}", e);
+            NexusError::GenericDynamoServiceError
+        }
+        UpdateItemError::ProvisionedThroughputExceededException(e) => {
+            log::error!("{:?}", e);
+            NexusError::GenericDynamoServiceError
+        }
+        UpdateItemError::RequestLimitExceeded(e) => {
+            log::error!("{:?}", e);
+            NexusError::GenericDynamoServiceError
+        }
+        UpdateItemError::ResourceNotFoundException(e) => {
+            log::error!("{:?}", e);
+            NexusError::GenericDynamoServiceError
+        }
+        UpdateItemError::TransactionConflictException(e) => {
+            log::error!("{:?}", e);
+            NexusError::GenericDynamoServiceError
+        }
+        e => {
+            log::error!("{:?}", e);
+            NexusError::GenericDynamoServiceError
+        }
+    })
 }
 

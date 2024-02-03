@@ -42,9 +42,7 @@ pub async fn login(email: String, password: String, remember: bool) -> Result<()
     }?;
 
     if !verified {
-        return Err(ServerFnError::ServerError(
-            NexusError::AccountNotVerified.to_string(),
-        ));
+        return Err(ServerFnError::new(NexusError::AccountNotVerified));
     }
 
     match verify_password(&password, &password_database_hash) {
@@ -85,9 +83,7 @@ pub async fn login(email: String, password: String, remember: bool) -> Result<()
                         return Ok(());
                     }
                     log::error!("Unable to create cookie {}", cookie);
-                    Err(ServerFnError::ServerError(
-                        NexusError::Unhandled.to_string(),
-                    ))
+                    Err(ServerFnError::new(NexusError::Unhandled))
                 }
                 Err(e) => Err(handle_login_update_error(e)),
             }
@@ -95,55 +91,51 @@ pub async fn login(email: String, password: String, remember: bool) -> Result<()
         // https://security.stackexchange.com/questions/227524/password-reset-giving-clues-of-possible-valid-email-addresses/227566#227566
         // TL;DR it is fine from a UX standpoint to say specifically they have the incorrect password, yes this does leak the fact
         // that a specific email address is logged in
-        false => Err(ServerFnError::ServerError(
-            NexusError::IncorrectPassword.to_string(),
-        )),
+        false => Err(ServerFnError::new(NexusError::IncorrectPassword)),
     }
 }
 
 fn handle_login_query_error(e: SdkError<QueryError>) -> ServerFnError {
-    ServerFnError::ServerError(
-        match e.into_service_error() {
-            QueryError::InternalServerError(e) => {
-                log::error!("{:?}", e);
-                NexusError::GenericDynamoServiceError
-            }
-            QueryError::InvalidEndpointException(e) => {
-                log::error!("{:?}", e);
-                NexusError::GenericDynamoServiceError
-            }
-            QueryError::ProvisionedThroughputExceededException(e) => {
-                log::error!("{:?}", e);
-                NexusError::GenericDynamoServiceError
-            }
-            QueryError::RequestLimitExceeded(e) => {
-                log::error!("{:?}", e);
-                NexusError::GenericDynamoServiceError
-            }
-            QueryError::ResourceNotFoundException(e) => {
-                log::error!("{:?}", e);
-                NexusError::GenericDynamoServiceError
-            }
-            e => {
-                log::error!("{:?}", e);
-                NexusError::GenericDynamoServiceError
-            }
+    ServerFnError::new(match e.into_service_error() {
+        QueryError::InternalServerError(e) => {
+            log::error!("{:?}", e);
+            NexusError::GenericDynamoServiceError
         }
-        .to_string(),
-    )
+        QueryError::InvalidEndpointException(e) => {
+            log::error!("{:?}", e);
+            NexusError::GenericDynamoServiceError
+        }
+        QueryError::ProvisionedThroughputExceededException(e) => {
+            log::error!("{:?}", e);
+            NexusError::GenericDynamoServiceError
+        }
+        QueryError::RequestLimitExceeded(e) => {
+            log::error!("{:?}", e);
+            NexusError::GenericDynamoServiceError
+        }
+        QueryError::ResourceNotFoundException(e) => {
+            log::error!("{:?}", e);
+            NexusError::GenericDynamoServiceError
+        }
+        e => {
+            log::error!("{:?}", e);
+            NexusError::GenericDynamoServiceError
+        }
+    })
 }
 
 fn get_hash_and_verified_status_from_query(
     val: QueryOutput,
 ) -> Result<(String, bool), ServerFnError> {
-    let item = val.items().first().ok_or(ServerFnError::ServerError(
-        NexusError::CouldNotFindRowWithThatEmail.to_string(),
-    ))?;
+    let item = val
+        .items()
+        .first()
+        .ok_or(ServerFnError::new(NexusError::CouldNotFindRowWithThatEmail))?;
     let blob = item
         .get(PASSWORD)
         .ok_or_else(|| -> ServerFnError {
             log::error!("Was not able to find the password, despite the filter expression");
-            ServerFnError::ServerError(NexusError::GenericDynamoServiceError.to_string())
+            ServerFnError::new(NexusError::GenericDynamoServiceError)
         })?
         .as_b()
         .map_err(|e| -> ServerFnError {
@@ -151,7 +143,7 @@ fn get_hash_and_verified_status_from_query(
                 "Was not able to get the inner blob from the password {:?}",
                 e
             );
-            ServerFnError::ServerError(NexusError::Unhandled.to_string())
+            ServerFnError::new(NexusError::Unhandled)
         })?;
     let hash_string =
         String::from_utf8(blob.clone().into_inner()).map_err(|e| -> ServerFnError {
@@ -160,64 +152,61 @@ fn get_hash_and_verified_status_from_query(
                 blob,
                 e
             );
-            ServerFnError::ServerError(NexusError::Unhandled.to_string())
+            ServerFnError::new(NexusError::Unhandled)
         })?;
     let email_verified = item
         .get(EMAIL_VERIFIED)
         .ok_or_else(|| -> ServerFnError {
             log::error!("Was not able to get whether or not this email verification status");
-            ServerFnError::ServerError(NexusError::Unhandled.to_string())
+            ServerFnError::new(NexusError::Unhandled)
         })?
         .as_bool()
         .map_err(|e| {
             log::error!("Could not convert EMAIL_VERIFIED to boolean {:?}", e);
-            ServerFnError::ServerError(NexusError::Unhandled.to_string())
+            ServerFnError::new(NexusError::Unhandled)
         })?;
     Ok((hash_string, *email_verified))
 }
 
 fn handle_login_update_error(e: SdkError<UpdateItemError>) -> ServerFnError {
-    ServerFnError::ServerError(
-        match e.into_service_error() {
-            UpdateItemError::ConditionalCheckFailedException(e) => {
-                // TODO: Check if this needs to be logged, as this occurs when we could not update the session_id/session_expiry
-                log::error!("{:?}", e);
-                NexusError::EmailNotFoundLogin
-            }
-            UpdateItemError::InternalServerError(e) => {
-                log::error!("{:?}", e);
-                NexusError::GenericDynamoServiceError
-            }
-            UpdateItemError::InvalidEndpointException(e) => {
-                log::error!("{:?}", e);
-                NexusError::GenericDynamoServiceError
-            }
-            UpdateItemError::ItemCollectionSizeLimitExceededException(e) => {
-                log::error!("{:?}", e);
-                NexusError::GenericDynamoServiceError
-            }
-            UpdateItemError::ProvisionedThroughputExceededException(e) => {
-                log::error!("{:?}", e);
-                NexusError::GenericDynamoServiceError
-            }
-            UpdateItemError::RequestLimitExceeded(e) => {
-                log::error!("{:?}", e);
-                NexusError::GenericDynamoServiceError
-            }
-            UpdateItemError::ResourceNotFoundException(e) => {
-                log::error!("{:?}", e);
-                NexusError::GenericDynamoServiceError
-            }
-            UpdateItemError::TransactionConflictException(e) => {
-                log::error!("{:?}", e);
-                NexusError::GenericDynamoServiceError
-            }
-            e => {
-                log::error!("{:?}", e);
-                NexusError::GenericDynamoServiceError
-            }
+    ServerFnError::new(match e.into_service_error() {
+        UpdateItemError::ConditionalCheckFailedException(e) => {
+            // TODO: Check if this needs to be logged, as this occurs when we could not update the session_id/session_expiry
+            log::error!("{:?}", e);
+            NexusError::EmailNotFoundLogin
         }
-        .to_string(),
-    )
+        UpdateItemError::InternalServerError(e) => {
+            log::error!("{:?}", e);
+            NexusError::GenericDynamoServiceError
+        }
+        UpdateItemError::InvalidEndpointException(e) => {
+            log::error!("{:?}", e);
+            NexusError::GenericDynamoServiceError
+        }
+        UpdateItemError::ItemCollectionSizeLimitExceededException(e) => {
+            log::error!("{:?}", e);
+            NexusError::GenericDynamoServiceError
+        }
+        UpdateItemError::ProvisionedThroughputExceededException(e) => {
+            log::error!("{:?}", e);
+            NexusError::GenericDynamoServiceError
+        }
+        UpdateItemError::RequestLimitExceeded(e) => {
+            log::error!("{:?}", e);
+            NexusError::GenericDynamoServiceError
+        }
+        UpdateItemError::ResourceNotFoundException(e) => {
+            log::error!("{:?}", e);
+            NexusError::GenericDynamoServiceError
+        }
+        UpdateItemError::TransactionConflictException(e) => {
+            log::error!("{:?}", e);
+            NexusError::GenericDynamoServiceError
+        }
+        e => {
+            log::error!("{:?}", e);
+            NexusError::GenericDynamoServiceError
+        }
+    })
 }
 

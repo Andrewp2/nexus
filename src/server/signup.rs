@@ -26,26 +26,20 @@ pub async fn signup(
     password_confirmation: String,
 ) -> Result<(), ServerFnError> {
     if !EmailAddress::is_valid(email.as_str()) {
-        return Err(ServerFnError::ServerError(
-            NexusError::BadEmailAddress.to_string(),
-        ));
+        return Err(ServerFnError::new(NexusError::BadEmailAddress));
     }
     if password != password_confirmation {
-        return Err(ServerFnError::ServerError(
-            NexusError::PasswordsNotMatching.to_string(),
-        ));
+        return Err(ServerFnError::new(NexusError::PasswordsNotMatching));
     }
     let mut censor = Censor::from_str(&display_name);
     let censor_type = censor.analyze();
     if censor_type.is(Type::MODERATE_OR_HIGHER) {
-        return Err(ServerFnError::ServerError(
-            NexusError::DisplayNameInappropriate.to_string(),
-        ));
+        return Err(ServerFnError::new(NexusError::DisplayNameInappropriate));
     }
     let dynamo_client = dynamo_client()?;
     let hashed_password = hash_password(&password).map_err(|e| {
         log::error!("Could not hash password? {:?}", e);
-        ServerFnError::ServerError(NexusError::CouldNotHashPassword.to_string())
+        ServerFnError::new(NexusError::CouldNotHashPassword)
     })?;
     let display_name_av = AttributeValue::S(display_name);
     let email_av = AttributeValue::S(email.clone());
@@ -89,45 +83,40 @@ pub async fn signup(
 }
 
 fn handle_signup_put_error(e: SdkError<PutItemError>) -> ServerFnError {
-    ServerFnError::ServerError(
-        match e.into_service_error() {
-            PutItemError::ConditionalCheckFailedException(_) => {
-                NexusError::BadUsernameEmailCombination
-            }
-            PutItemError::InternalServerError(e) => {
-                log::error!("{:?}", e);
-                NexusError::GenericDynamoServiceError
-            }
-            PutItemError::InvalidEndpointException(e) => {
-                log::error!("{:?}", e);
-                NexusError::GenericDynamoServiceError
-            }
-            PutItemError::ItemCollectionSizeLimitExceededException(e) => {
-                log::error!("{:?}", e);
-                NexusError::GenericDynamoServiceError
-            }
-            PutItemError::ProvisionedThroughputExceededException(e) => {
-                log::error!("{:?}", e);
-                NexusError::GenericDynamoServiceError
-            }
-            PutItemError::RequestLimitExceeded(e) => {
-                log::error!("{:?}", e);
-                NexusError::GenericDynamoServiceError
-            }
-            PutItemError::ResourceNotFoundException(e) => {
-                log::error!("{:?}", e);
-                NexusError::GenericDynamoServiceError
-            }
-            PutItemError::TransactionConflictException(e) => {
-                log::error!("{:?}", e);
-                NexusError::GenericDynamoServiceError
-            }
-            e => {
-                log::error!("{:?}", e);
-                NexusError::GenericDynamoServiceError
-            }
+    ServerFnError::new(match e.into_service_error() {
+        PutItemError::ConditionalCheckFailedException(_) => NexusError::BadUsernameEmailCombination,
+        PutItemError::InternalServerError(e) => {
+            log::error!("{:?}", e);
+            NexusError::GenericDynamoServiceError
         }
-        .to_string(),
-    )
+        PutItemError::InvalidEndpointException(e) => {
+            log::error!("{:?}", e);
+            NexusError::GenericDynamoServiceError
+        }
+        PutItemError::ItemCollectionSizeLimitExceededException(e) => {
+            log::error!("{:?}", e);
+            NexusError::GenericDynamoServiceError
+        }
+        PutItemError::ProvisionedThroughputExceededException(e) => {
+            log::error!("{:?}", e);
+            NexusError::GenericDynamoServiceError
+        }
+        PutItemError::RequestLimitExceeded(e) => {
+            log::error!("{:?}", e);
+            NexusError::GenericDynamoServiceError
+        }
+        PutItemError::ResourceNotFoundException(e) => {
+            log::error!("{:?}", e);
+            NexusError::GenericDynamoServiceError
+        }
+        PutItemError::TransactionConflictException(e) => {
+            log::error!("{:?}", e);
+            NexusError::GenericDynamoServiceError
+        }
+        e => {
+            log::error!("{:?}", e);
+            NexusError::GenericDynamoServiceError
+        }
+    })
 }
 

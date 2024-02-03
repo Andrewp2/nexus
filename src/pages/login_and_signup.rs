@@ -9,11 +9,9 @@ use crate::server::public::{Login, Signup};
 pub fn LoginAndSignup() -> impl IntoView {
     let login = create_server_action::<Login>();
     let sign_up = create_server_action::<Signup>();
-    let login_error: RwSignal<Option<Box<dyn Error>>> = create_rw_signal(Default::default());
-    let signup_error = create_rw_signal(Default::default());
     view! {
         <div id="log-in-and-register-form">
-            <ActionForm action=login error=login_error class="log-in-form">
+            <ActionForm action=login class="log-in-form">
                 <h1>"Log in"</h1>
                 <label>
                     "Email:" <br/>
@@ -36,11 +34,15 @@ pub fn LoginAndSignup() -> impl IntoView {
                     "Remember me?"
                 </label>
                 <br/>
-                <button type="submit" class="log-in-button">
+                <label>
+                    <input type="submit" class="log-in-button"/>
                     "Log In"
-                </button>
+                </label>
+            // <button type="submit" class="log-in-button">
+            // "Log In"
+            // </button>
             </ActionForm>
-            <ActionForm action=sign_up error=signup_error class="sign-up-form">
+            <ActionForm action=sign_up class="sign-up-form">
                 <h1>"Sign Up"</h1>
                 <label>
                     "Email:" <br/>
@@ -69,9 +71,10 @@ pub fn LoginAndSignup() -> impl IntoView {
                     />
                 </label>
                 <br/>
-                <button type="submit" class="sign-up-button">
-                    "Sign Up"
-                </button>
+                // <button type="submit" class="sign-up-button">
+                // "Sign Up"
+                // </button>
+                <input type="submit" class="sign-up-button"/>
             </ActionForm>
         </div>
     }

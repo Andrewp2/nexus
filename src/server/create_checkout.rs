@@ -8,26 +8,28 @@ use stripe::{
 use crate::{
     dynamo::constants::get_table_name,
     errors::NexusError,
-    server::utilities::{check_if_session_is_valid, dynamo_client, get_session_cookie},
+    server::utilities::{
+        check_if_session_is_valid, dynamo_client, get_session_cookie, stripe_client,
+    },
     site::constants::SITE_FULL_DOMAIN,
 };
 
 const PRICE_OF_GAME_IN_CENTS: i64 = 3000;
 
 pub async fn create_checkout() -> Result<String, ServerFnError> {
+    // TODO: uncomment
     // let session_id_cookie = get_session_cookie().await?;
     // let dynamo_client = dynamo_client()?;
     // let (valid, email) = check_if_session_is_valid(session_id_cookie, &dynamo_client).await?;
     // if !valid {
-    //     return Err(ServerFnError::ServerError(
-    //         NexusError::Unhandled.to_string(),
+    //     return Err(ServerFnError::new(
+    //         NexusError::Unhandled,
     //     ));
     // }
-    let secret_key = std::env::var("STRIPE_SECRET_KEY").expect("Missing STRIPE_SECRET_KEY in env");
-    let client = Client::new(secret_key);
+    let stripe_client = stripe_client()?;
 
     let customer = Customer::create(
-        &client,
+        &stripe_client,
         CreateCustomer {
             //email: Some(email.as_str()),
             email: Some("example@example.com"),
@@ -45,7 +47,7 @@ pub async fn create_checkout() -> Result<String, ServerFnError> {
     .await
     .map_err(|e| {
         log::error!("{:?}", e);
-        ServerFnError::ServerError(NexusError::Unhandled.to_string())
+        ServerFnError::new(NexusError::Unhandled)
     })?;
 
     log::info!(
@@ -59,11 +61,11 @@ pub async fn create_checkout() -> Result<String, ServerFnError> {
         String::from("async-stripe"),
         String::from("true"),
     )]));
-    let product = Product::create(&client, create_product)
+    let product = Product::create(&stripe_client, create_product)
         .await
         .map_err(|e| {
             log::error!("{:?}", e);
-            ServerFnError::ServerError(NexusError::Unhandled.to_string())
+            ServerFnError::new(NexusError::Unhandled)
         })?;
 
     // and add a price for it in USD
@@ -75,10 +77,12 @@ pub async fn create_checkout() -> Result<String, ServerFnError> {
     )]));
     create_price.unit_amount = Some(PRICE_OF_GAME_IN_CENTS);
     create_price.expand = &["product"];
-    let price = Price::create(&client, create_price).await.map_err(|e| {
-        log::error!("{:?}", e);
-        ServerFnError::ServerError(NexusError::Unhandled.to_string())
-    })?;
+    let price = Price::create(&stripe_client, create_price)
+        .await
+        .map_err(|e| {
+            log::error!("{:?}", e);
+            ServerFnError::new(NexusError::Unhandled)
+        })?;
 
     log::info!(
         "created a product {:?} at price {} {}",
@@ -103,18 +107,16 @@ pub async fn create_checkout() -> Result<String, ServerFnError> {
     params.expand = &["line_items", "line_items.data.price.product"];
     params.ui_mode = Some(stripe::CheckoutSessionUiMode::Embedded);
 
-    let checkout_session = CheckoutSession::create(&client, params)
+    let checkout_session = CheckoutSession::create(&stripe_client, params)
         .await
         .map_err(|e| {
             log::error!("{:?}", e);
-            ServerFnError::ServerError(NexusError::Unhandled.to_string())
+            ServerFnError::new(NexusError::Unhandled)
         })?;
     log::info!("return");
     return match checkout_session.client_secret {
         Some(secret) => Ok(secret),
-        None => Err(ServerFnError::ServerError(
-            NexusError::Unhandled.to_string(),
-        )),
+        None => Err(ServerFnError::new(NexusError::Unhandled)),
     };
 }
 

@@ -7,9 +7,9 @@ use crate::{
         about::About, checkout::Checkout, checkout_cancel::CheckoutCancel,
         checkout_success::CheckoutSuccess, community::Community, credits::Credits,
         email_verification::EmailVerification,
-        email_verification_attempt::EmailVerificationAttempt, home::Home,
+        email_verification_attempt::EmailVerificationAttempt,
+        end_user_license_agreement::EndUserLicenseAgreement, home::Home,
         login_and_signup::LoginAndSignup, support_faq::SupportFAQ,
-        terms_and_conditions::TermsAndConditions,
     },
     server::public::Login,
 };
@@ -49,7 +49,7 @@ pub fn App() -> impl IntoView {
                         <Route path="" view=Home/>
                         <Route path="about" view=About/>
                         <Route path="community" view=Community/>
-                        <Route path="terms_and_conditions" view=TermsAndConditions/>
+                        <Route path="terms_of_service" view=EndUserLicenseAgreement/>
                         <Route path="credits" view=Credits/>
                         <Route path="support" view=SupportFAQ/>
                         <Route path="log_in" view=LoginAndSignup/>
