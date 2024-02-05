@@ -3,13 +3,11 @@ use super::{
     verify_email::send_verification_email,
 };
 use crate::{
-    dynamo::constants::{
-        get_table_name,
-        table_attributes::{
-            self, ACCOUNT_CREATION_TIME, DISPLAY_NAME, EMAIL, EMAIL_VERIFICATION_UUID,
-            EMAIL_VERIFIED, GAMES_BOUGHT, PASSWORD, USER_UUID,
-        },
+    dynamo::constants::table_attributes::{
+        self, ACCOUNT_CREATION_TIME, DISPLAY_NAME, EMAIL, EMAIL_VERIFICATION_UUID, EMAIL_VERIFIED,
+        GAMES_BOUGHT, PASSWORD, USER_UUID,
     },
+    env_var::get_table_name,
     errors::NexusError,
 };
 use aws_sdk_dynamodb::{error::SdkError, operation::put_item::PutItemError, types::AttributeValue};
@@ -24,22 +22,22 @@ pub async fn signup(
     email: String,
     password: String,
     password_confirmation: String,
-) -> Result<(), ServerFnError> {
+) -> Result<(), ServerFnError<NexusError>> {
     if !EmailAddress::is_valid(email.as_str()) {
-        return Err(ServerFnError::new(NexusError::BadEmailAddress));
+        return Err(ServerFnError::from(NexusError::BadEmailAddress));
     }
     if password != password_confirmation {
-        return Err(ServerFnError::new(NexusError::PasswordsNotMatching));
+        return Err(ServerFnError::from(NexusError::PasswordsNotMatching));
     }
     let mut censor = Censor::from_str(&display_name);
     let censor_type = censor.analyze();
     if censor_type.is(Type::MODERATE_OR_HIGHER) {
-        return Err(ServerFnError::new(NexusError::DisplayNameInappropriate));
+        return Err(ServerFnError::from(NexusError::DisplayNameInappropriate));
     }
     let dynamo_client = dynamo_client()?;
     let hashed_password = hash_password(&password).map_err(|e| {
         log::error!("Could not hash password? {:?}", e);
-        ServerFnError::new(NexusError::CouldNotHashPassword)
+        ServerFnError::from(NexusError::CouldNotHashPassword)
     })?;
     let display_name_av = AttributeValue::S(display_name);
     let email_av = AttributeValue::S(email.clone());
@@ -83,7 +81,7 @@ pub async fn signup(
 }
 
 fn handle_signup_put_error(e: SdkError<PutItemError>) -> ServerFnError {
-    ServerFnError::new(match e.into_service_error() {
+    ServerFnError::from(match e.into_service_error() {
         PutItemError::ConditionalCheckFailedException(_) => NexusError::BadUsernameEmailCombination,
         PutItemError::InternalServerError(e) => {
             log::error!("{:?}", e);

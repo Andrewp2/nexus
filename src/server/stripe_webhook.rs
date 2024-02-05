@@ -1,3 +1,4 @@
+use aws_sdk_dynamodb::types::AttributeValue;
 use axum::{
     body::{Body, HttpBody},
     extract::FromRequest,
@@ -5,11 +6,17 @@ use axum::{
     response::{IntoResponse, Response},
     Extension, RequestExt,
 };
+use headers::Header;
 use http::{HeaderName, HeaderValue, StatusCode};
-use std::fmt::Debug;
-use stripe::{Event as WebhookEvent, EventObject, Webhook};
+use std::{fmt::Debug, str::FromStr};
+use stripe::{CheckoutSession, Event as WebhookEvent, EventObject, EventType, Webhook};
+use uuid::Uuid;
 
-use crate::{app_state::AppState, env_var::get_stripe_webhook_signature};
+use crate::{
+    app_state::AppState,
+    dynamo::constants::table_attributes,
+    env_var::{get_stripe_webhook_signature, get_table_name},
+};
 
 impl From<(StatusCode, String)> for ServerError {
     fn from(value: (StatusCode, String)) -> Self {
@@ -22,6 +29,8 @@ impl IntoResponse for ServerError {
         (self.0, self.1).into_response()
     }
 }
+
+#[derive(Debug)]
 pub struct ServerError(pub StatusCode, pub String);
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -42,7 +51,7 @@ impl Header for StripeSignatureHeader {
         Ok(Self(
             value
                 .to_str()
-                .map_err(|_| axum::headers::Error::invalid())?
+                .map_err(|_| headers::Error::invalid())?
                 .to_string(),
         ))
     }
@@ -71,12 +80,24 @@ impl<S: Sync + Sync> FromRequest<S, Body> for SignedStripeEvent {
 
     async fn from_request(req: Request<Body>, _: &S) -> Result<Self, Self::Rejection> {
         let signature = req
-            .body()
-            .extract_parts::<TypedHeader<StripeSignatureHeader>>()
-            .await
+            .headers()
+            .get("Stripe-Signature")
+            .ok_or_else(|| {
+                ServerError(
+                    StatusCode::BAD_REQUEST,
+                    "Missing Stripe-Signature header".into(),
+                )
+            })
+            .and_then(|value| {
+                value.to_str().map_err(|_| {
+                    ServerError(
+                        StatusCode::BAD_REQUEST,
+                        "Invalid Stripe-Signature header".into(),
+                    )
+                })
+            })
             .map_err(handle_error)?
-            .0
-             .0;
+            .to_string();
         let secret = get_stripe_webhook_signature();
         let req_content_length = match req.body().size_hint().upper() {
             Some(v) => v,
@@ -86,9 +107,10 @@ impl<S: Sync + Sync> FromRequest<S, Body> for SignedStripeEvent {
             let body = axum::body::to_bytes(req.into_body(), req_content_length as usize)
                 .await
                 .map_err(handle_error)?;
-            let body = std::str::from_utf8(&*body).map_err(handle_error)?;
+            let body_str = std::str::from_utf8(&*body).map_err(handle_error)?;
+
             Ok(SignedStripeEvent(
-                Webhook::construct_event(&body, &signature, &secret)
+                Webhook::construct_event(body_str, &signature, &secret)
                     .map_err(|err| ServerError(StatusCode::UNAUTHORIZED, format!("{:?}", err)))?,
             ))
         } else {
@@ -97,19 +119,85 @@ impl<S: Sync + Sync> FromRequest<S, Body> for SignedStripeEvent {
     }
 }
 
+pub fn not_found<S: AsRef<str>>(item: S) -> (StatusCode, String) {
+    (
+        StatusCode::NOT_FOUND,
+        format!("{} not found.", item.as_ref()),
+    )
+}
+
+async fn checkout_session_completed(
+    dynamo_client: &aws_sdk_dynamodb::Client,
+    checkout_session: CheckoutSession,
+) -> Result<(), (StatusCode, String)> {
+    let metadata = checkout_session.metadata.unwrap();
+    let email = checkout_session
+        .customer_email
+        .ok_or(not_found("customer_email"))?;
+    // let _user_id = metadata
+    //     .get("user_id")
+    //     .ok_or(not_found("user_id metadata"))?;
+    // let _checkout_id = checkout_session.id.to_string();
+    let item_id = metadata
+        .get("item_id")
+        .ok_or(not_found("item_id metadata"))?;
+    let item_id = Uuid::from_str(item_id).map_err(|err| {
+        log::error!("{err:?}");
+        (StatusCode::INTERNAL_SERVER_ERROR, format!("{err:?}"))
+    })?;
+
+    let update = dynamo_client
+        .update_item()
+        .table_name(get_table_name())
+        .key(table_attributes::EMAIL, AttributeValue::S(email))
+        .update_expression("SET #listAttr = list_append(#listAttr, :newElement)")
+        .expression_attribute_names("#listAttr", "listAttributeName")
+        .expression_attribute_values(
+            ":newElement",
+            AttributeValue::L(vec![AttributeValue::S("newElementValue".to_string())]),
+        )
+        .send()
+        .await;
+
+    match update {
+        Ok(_) => todo!(),
+        Err(_) => todo!(),
+    }
+    Ok(())
+}
+
+async fn process_checkout(
+    dynamo_client: &aws_sdk_dynamodb::Client,
+    stripe_client: &stripe::Client,
+    checkout_session: CheckoutSession,
+    event_type: EventType,
+) -> Result<(), (StatusCode, String)> {
+    match event_type {
+        EventType::CheckoutSessionAsyncPaymentFailed => Ok(()),
+        EventType::CheckoutSessionAsyncPaymentSucceeded => Ok(()),
+        EventType::CheckoutSessionCompleted => {
+            checkout_session_completed(dynamo_client, checkout_session).await
+        }
+        EventType::CheckoutSessionExpired => Ok(()),
+        _ => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Wrong event type for event associated with checkout".into(),
+        )),
+    }
+}
+
 pub async fn stripe_webhook(
     Extension(state): Extension<AppState>,
     SignedStripeEvent(event): SignedStripeEvent,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
-    let db = state.conn;
-    let stripe = state.stripe_state;
-
+    let stripe_client = state.stripe_client;
+    let dynamo_client = state.dynamodb_client;
     let event_type = event.type_;
-
     let idempotency_key = event.request.and_then(|req| req.idempotency_key);
     match event.data.object {
         EventObject::CheckoutSession(checkout) => {
             //process_checkout(&db, stripe, checkout, event_type).await?;
+            process_checkout(&dynamo_client, &stripe_client, checkout, event_type).await?;
         }
         //TODO: HANDLE DISPUTE
         EventObject::Dispute(dispute) => {

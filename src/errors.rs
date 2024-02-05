@@ -1,4 +1,5 @@
 use core::fmt;
+use std::{error::Error, str::FromStr};
 
 use serde::{Deserialize, Serialize};
 
@@ -21,6 +22,15 @@ pub enum NexusError {
     BadEmailAddress,
     #[serde(other)]
     Unhandled,
+}
+
+impl FromStr for NexusError {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        serde_json::de::from_str(s)
+            .map_err(|e| "Could not deserialize string into NexusError".to_string())
+    }
 }
 
 impl fmt::Display for NexusError {

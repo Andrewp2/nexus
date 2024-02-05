@@ -8,6 +8,7 @@ pub mod login;
 pub mod logout;
 #[cfg(feature = "ssr")]
 pub mod signup;
+#[cfg(feature = "ssr")]
 pub mod stripe_webhook;
 #[cfg(feature = "ssr")]
 pub mod utilities;

@@ -160,6 +160,7 @@ dependencies = [
  "smol_str",
  "thiserror",
  "tokio",
+ "uuid 0.8.2",
 ]
 
 [[package]]
@@ -269,7 +270,7 @@ dependencies = [
  "percent-encoding",
  "pin-project-lite",
  "tracing",
- "uuid",
+ "uuid 1.7.0",
 ]
 
 [[package]]
@@ -647,6 +648,7 @@ dependencies = [
  "bytes",
  "cookie",
  "futures-util",
+ "headers",
  "http 1.0.0",
  "http-body 1.0.0",
  "http-body-util",
@@ -770,7 +772,7 @@ dependencies = [
  "bytecheck_derive",
  "ptr_meta",
  "simdutf8",
- "uuid",
+ "uuid 1.7.0",
 ]
 
 [[package]]
@@ -2106,7 +2108,7 @@ dependencies = [
  "server_fn_macro",
  "syn 2.0.48",
  "tracing",
- "uuid",
+ "uuid 1.7.0",
 ]
 
 [[package]]
@@ -2398,7 +2400,7 @@ dependencies = [
  "tower",
  "tower-http",
  "tracing",
- "uuid",
+ "uuid 1.7.0",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
@@ -2929,7 +2931,7 @@ dependencies = [
  "rkyv_derive",
  "seahash",
  "tinyvec",
- "uuid",
+ "uuid 1.7.0",
 ]
 
 [[package]]
@@ -3832,6 +3834,15 @@ name = "utf8-width"
 version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "86bd8d4e895da8537e5315b8254664e6b769c4ff3db18321b297a1e7004392e3"
+
+[[package]]
+name = "uuid"
+version = "0.8.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bc5cf98d8186244414c848017f0e2676b3fcb46807f6668a97dfe67359a3c4b7"
+dependencies = [
+ "getrandom 0.2.12",
+]
 
 [[package]]
 name = "uuid"

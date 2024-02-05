@@ -37,7 +37,10 @@ argon2 = { version = "0.5.2", optional = true, features = [] }
 rand = { version = "0.8.5", optional = true }
 rustrict = { version = "0.7.16", optional = true }
 serde_json = "1.0.108"
-axum-extra = { version = "0.9.2", optional = true, features = ["cookie"] }
+axum-extra = { version = "0.9.2", optional = true, features = [
+    "cookie",
+    "typed-header",
+] }
 email_address = { version = "0.2.4", optional = true }
 gloo-net = { version = "0.5", features = ["http"] }
 web-sys = { version = "0.3.66", features = ["Window"] }
@@ -48,6 +51,9 @@ async-stripe = { version = "0.31", optional = true, default-features = false, fe
     "checkout",
     "webhook-endpoints",
     "webhook-events",
+    "uuid",
+    "stream",
+    "connect",
 ] }
 headers = { version = "0.4.0", optional = true }
 

@@ -6,7 +6,6 @@ use stripe::{
 };
 
 use crate::{
-    dynamo::constants::get_table_name,
     errors::NexusError,
     server::utilities::{
         check_if_session_is_valid, dynamo_client, get_session_cookie, stripe_client,
@@ -16,23 +15,23 @@ use crate::{
 
 const PRICE_OF_GAME_IN_CENTS: i64 = 3000;
 
-pub async fn create_checkout() -> Result<String, ServerFnError> {
-    // TODO: uncomment
-    // let session_id_cookie = get_session_cookie().await?;
-    // let dynamo_client = dynamo_client()?;
-    // let (valid, email) = check_if_session_is_valid(session_id_cookie, &dynamo_client).await?;
-    // if !valid {
-    //     return Err(ServerFnError::new(
-    //         NexusError::Unhandled,
-    //     ));
-    // }
+pub async fn create_checkout() -> Result<String, ServerFnError<NexusError>> {
     let stripe_client = stripe_client()?;
-
+    #[cfg(debug_assertions)]
+    let email = "example@example.com".to_owned();
+    #[cfg(not(debug_assertions))]
+    {
+        let session_id_cookie = get_session_cookie().await?;
+        let dynamo_client = dynamo_client()?;
+        let (valid, email) = check_if_session_is_valid(session_id_cookie, &dynamo_client).await?;
+        if !valid {
+            return Err(ServerFnError::from(NexusError::Unhandled));
+        }
+    }
     let customer = Customer::create(
         &stripe_client,
         CreateCustomer {
-            //email: Some(email.as_str()),
-            email: Some("example@example.com"),
+            email: Some(email.as_str()),
             description: Some(
                 "A fake customer that is used to illustrate the examples in async-stripe.",
             ),
@@ -47,15 +46,13 @@ pub async fn create_checkout() -> Result<String, ServerFnError> {
     .await
     .map_err(|e| {
         log::error!("{:?}", e);
-        ServerFnError::new(NexusError::Unhandled)
+        ServerFnError::from(NexusError::Unhandled)
     })?;
 
     log::info!(
         "created a customer at https://dashboard.stripe.com/test/customers/{}",
         customer.id
     );
-
-    // create a new example project
     let mut create_product = CreateProduct::new("video game");
     create_product.metadata = Some(std::collections::HashMap::from([(
         String::from("async-stripe"),
@@ -65,10 +62,9 @@ pub async fn create_checkout() -> Result<String, ServerFnError> {
         .await
         .map_err(|e| {
             log::error!("{:?}", e);
-            ServerFnError::new(NexusError::Unhandled)
+            ServerFnError::from(NexusError::Unhandled)
         })?;
 
-    // and add a price for it in USD
     let mut create_price = CreatePrice::new(Currency::USD);
     create_price.product = Some(IdOrCreate::Id(&product.id));
     create_price.metadata = Some(std::collections::HashMap::from([(
@@ -81,7 +77,7 @@ pub async fn create_checkout() -> Result<String, ServerFnError> {
         .await
         .map_err(|e| {
             log::error!("{:?}", e);
-            ServerFnError::new(NexusError::Unhandled)
+            ServerFnError::from(NexusError::Unhandled)
         })?;
 
     log::info!(
@@ -93,9 +89,7 @@ pub async fn create_checkout() -> Result<String, ServerFnError> {
 
     // finally, create a checkout session for this product / price
     let mut params = CreateCheckoutSession::new();
-    //let cancel_url = format!("http://{}/cancel", SITE_FULL_DOMAIN);
-    //params.cancel_url = Some(&cancel_url);
-    let redirect_url = format!("http://{}/download", SITE_FULL_DOMAIN);
+    let redirect_url = format!("https://{}/download", SITE_FULL_DOMAIN);
     params.return_url = Some(&redirect_url);
     params.customer = Some(customer.id);
     params.mode = Some(CheckoutSessionMode::Payment);
@@ -111,12 +105,11 @@ pub async fn create_checkout() -> Result<String, ServerFnError> {
         .await
         .map_err(|e| {
             log::error!("{:?}", e);
-            ServerFnError::new(NexusError::Unhandled)
+            ServerFnError::from(NexusError::Unhandled)
         })?;
-    log::info!("return");
     return match checkout_session.client_secret {
         Some(secret) => Ok(secret),
-        None => Err(ServerFnError::new(NexusError::Unhandled)),
+        None => Err(ServerFnError::from(NexusError::Unhandled)),
     };
 }
 

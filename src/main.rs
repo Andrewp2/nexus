@@ -79,14 +79,14 @@ async fn main() {
         routes: routes.clone(),
         dynamodb_client: DynamoClient::new(&aws_sdk_config).into(),
         ses_client: SesClient::new(&aws_sdk_config).into(),
-        stripe_client,
+        stripe_client: stripe_client.into(),
     };
 
     // build our application with a route
     let app = Router::new()
         .route(
             "/api/webhooks/stripe",
-            post(server::stripe_webhook::stripe_webhook),
+            axum::routing::post(server::stripe_webhook::stripe_webhook),
         )
         .route(
             "/api/*fn_name",

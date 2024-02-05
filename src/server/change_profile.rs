@@ -1,10 +1,10 @@
 use super::utilities::{dynamo_client, get_email_from_session_id, get_session_cookie, ses_client};
 use crate::{
     dynamo::constants::{
-        get_table_name,
         index::EMAIL_VERIFICATION_UUID,
         table_attributes::{self, EMAIL, EMAIL_VERIFIED, SESSION_EXPIRY, SESSION_ID},
     },
+    env_var::get_table_name,
     errors::NexusError,
     site::constants::{SITE_DOMAIN, SITE_EMAIL_ADDRESS, SITE_FULL_DOMAIN},
 };
@@ -24,9 +24,9 @@ use rustrict::{Censor, Type};
 use uuid::Uuid;
 
 /// Starts a request to change email
-pub async fn change_email_request(new_email: String) -> Result<(), ServerFnError> {
+pub async fn change_email_request(new_email: String) -> Result<(), ServerFnError<NexusError>> {
     if !EmailAddress::is_valid(&new_email) {
-        return Err(ServerFnError::new(NexusError::BadEmailAddress));
+        return Err(ServerFnError::from(NexusError::BadEmailAddress));
     }
     let session_id_cookie = get_session_cookie().await?;
     let client = dynamo_client()?;
@@ -39,63 +39,43 @@ pub async fn change_email_request(new_email: String) -> Result<(), ServerFnError
         .expression_attribute_names("k", SESSION_ID)
         .expression_attribute_names(":v", session_id_cookie.clone())
         .send()
-        .await;
+        .await
+        .map_err(|e| aws_sdk_dynamodb::Error::from(e));
+
     let user = match old_user_query {
         Ok(o) => Ok(o),
-        Err(e) => Err(ServerFnError::new(match e.into_service_error() {
-            QueryError::InternalServerError(e2) => {
-                log::error!("{:?}", e2);
-                NexusError::Unhandled
-            }
-            QueryError::InvalidEndpointException(e2) => {
-                log::error!("{:?}", e2);
-                NexusError::Unhandled
-            }
-            QueryError::ProvisionedThroughputExceededException(e2) => {
-                log::error!("{:?}", e2);
-                NexusError::Unhandled
-            }
-            QueryError::RequestLimitExceeded(e2) => {
-                log::error!("{:?}", e2);
-                NexusError::Unhandled
-            }
-            QueryError::ResourceNotFoundException(e2) => {
-                log::error!("{:?}", e2);
-                NexusError::Unhandled
-            }
-            e2 => {
-                log::error!("{:?}", e2);
-                NexusError::Unhandled
-            }
-        })),
+        Err(e) => {
+            log::error!("{:?}", e);
+            Err(ServerFnError::from(NexusError::Unhandled))
+        }
     }?;
     let items = user.items.ok_or_else(|| {
         log::error!("Could not get items from user");
-        ServerFnError::new(NexusError::Unhandled)
+        ServerFnError::from(NexusError::Unhandled)
     })?;
     let attributes = items.first().ok_or_else(|| {
         log::error!("Could not get first item from items");
-        ServerFnError::new(NexusError::Unhandled)
+        ServerFnError::from(NexusError::Unhandled)
     })?;
     let session_expiry = attributes
         .get(SESSION_EXPIRY)
         .ok_or_else(|| {
             log::error!("Could not get session expiry");
-            ServerFnError::new(NexusError::Unhandled)
+            ServerFnError::from(NexusError::Unhandled)
         })?
         .as_n()
         .map_err(|e| {
             log::error!("Could not convert session expiry to number {:?}", e);
-            ServerFnError::new(NexusError::Unhandled)
+            ServerFnError::from(NexusError::Unhandled)
         })?
         .parse::<i64>()
         .map_err(|e| {
             log::error!("Could not parse sesion expiry number as i64 {:?}", e);
-            ServerFnError::new(NexusError::Unhandled)
+            ServerFnError::from(NexusError::Unhandled)
         })?;
     let now = Utc::now().timestamp();
     if now >= session_expiry {
-        return Err(ServerFnError::new(NexusError::InvalidSession));
+        return Err(ServerFnError::from(NexusError::InvalidSession));
     }
     let check_email_not_already_exists_expression =
         format!("attribute_not_exists({})", table_attributes::EMAIL);
@@ -114,49 +94,34 @@ pub async fn change_email_request(new_email: String) -> Result<(), ServerFnError
         AttributeValue::S(change_email_verification_uuid.clone()),
     );
     put = put.item(EMAIL_VERIFIED, AttributeValue::Bool(false));
-    let put_resp = put.send().await;
+    let put_resp = put
+        .send()
+        .await
+        .map_err(|e| aws_sdk_dynamodb::Error::from(e));
 
     match put_resp {
         Ok(_) => Ok(()),
-        Err(e) => Err(ServerFnError::new(
-            match e.into_service_error() {
-                PutItemError::ConditionalCheckFailedException(e2) => {
-                    log::warn!("{:?}", e2);
+        Err(e) => {
+            log::error!("{:?}", e);
+            Err(ServerFnError::from(match e {
+                aws_sdk_dynamodb::Error::ConditionalCheckFailedException(_) => {
                     NexusError::EmailAlreadyInUse
                 }
-                PutItemError::InvalidEndpointException(e2) => {
-                    log::error!("{:?}", e2);
-                    NexusError::Unhandled
-                }
-                PutItemError::ItemCollectionSizeLimitExceededException(e2) => {
-                    log::error!("{:?}", e2);
-                    NexusError::Unhandled
-                }
-                PutItemError::ProvisionedThroughputExceededException(e2) => {
-                    log::error!("{:?}", e2);
-                    NexusError::Unhandled
-                }
-                PutItemError::RequestLimitExceeded(e2) => {
-                    log::error!("{:?}", e2);
-                    NexusError::Unhandled
-                }
-                PutItemError::ResourceNotFoundException(e2) => {
-                    log::error!("{:?}", e2);
-                    NexusError::Unhandled
-                }
-                PutItemError::TransactionConflictException(e2) => {
-                    log::error!("{:?}", e2);
-                    NexusError::Unhandled
-                }
-                e2 => {
-                    log::error!("{:?}", e2);
-                    NexusError::Unhandled
-                }
-            }
-            .to_string(),
-        )),
+                _ => NexusError::Unhandled,
+            }))
+        }
     }?;
-    let old_email = attributes.get(EMAIL).unwrap().as_s().unwrap();
+    let old_email = attributes
+        .get(EMAIL)
+        .ok_or_else(|| {
+            log::error!("Could not get email attribute");
+            ServerFnError::from(NexusError::Unhandled)
+        })?
+        .as_s()
+        .map_err(|e| {
+            log::error!("Could not get email attribute as string {:?}", e);
+            ServerFnError::from(NexusError::Unhandled)
+        })?;
     let ses_client = ses_client()?;
     let body = format!(
         "Hello,
@@ -169,14 +134,21 @@ If you did not request an email address change, please change your password.",
         SITE_FULL_DOMAIN,
         change_email_verification_uuid.to_string()
     );
-    let email_body_html = Content::builder().data(body).build()?;
+    let email_body_html = Content::builder().data(body).build().map_err(|e| {
+        log::error!("Could not build email body html {:?}", e);
+        ServerFnError::from(NexusError::Unhandled)
+    })?;
     let email_body = Body::builder().html(email_body_html).build();
     let email_subject_content = Content::builder()
         .data(format!(
             "[{}] Please verify your email address",
             SITE_DOMAIN
         ))
-        .build()?;
+        .build()
+        .map_err(|e| {
+            log::error!("Could not build email subject content {:?}", e);
+            ServerFnError::from(NexusError::Unhandled)
+        })?;
     let email_message = Message::builder()
         .subject(email_subject_content)
         .body(email_body)
@@ -190,43 +162,19 @@ If you did not request an email address change, please change your password.",
         .await;
     match email_send_resp {
         Ok(_) => Ok(()),
-        Err(e) => Err(handle_send_email_error(e, new_email)),
+        Err(e) => Err({
+            let e = e;
+            let new_email = new_email;
+            log::error!("Warning, we created a new account for {} but we weren't able to send them the verification email!", new_email);
+            log::error!("{:?}", e);
+            ServerFnError::from(NexusError::Unhandled)
+        }),
     }?;
     leptos_axum::redirect("/email_verification/");
     Ok(())
 }
 
-fn handle_send_email_error(e: SdkError<SendEmailError>, new_email: String) -> ServerFnError {
-    log::error!("Warning, we created a new account for {} but we weren't able to send them the verification email!", new_email);
-    ServerFnError::new(match e.into_service_error() {
-        SendEmailError::AccountSendingPausedException(e2) => {
-            log::error!("handle_verify_change_email_request_error {:?}", e2);
-            NexusError::Unhandled
-        }
-        SendEmailError::ConfigurationSetDoesNotExistException(e2) => {
-            log::error!("handle_verify_change_email_request_error {:?}", e2);
-            NexusError::Unhandled
-        }
-        SendEmailError::ConfigurationSetSendingPausedException(e2) => {
-            log::error!("handle_verify_change_email_request_error {:?}", e2);
-            NexusError::Unhandled
-        }
-        SendEmailError::MailFromDomainNotVerifiedException(e2) => {
-            log::error!("handle_verify_change_email_request_error {:?}", e2);
-            NexusError::Unhandled
-        }
-        SendEmailError::MessageRejected(e2) => {
-            log::error!("handle_verify_change_email_request_error {:?}", e2);
-            NexusError::Unhandled
-        }
-        e2 => {
-            log::error!("handle_verify_change_email_request_error {:?}", e2);
-            NexusError::Unhandled
-        }
-    })
-}
-
-async fn change_value(name: &str, value: AttributeValue) -> Result<(), ServerFnError> {
+async fn change_value(name: &str, value: AttributeValue) -> Result<(), ServerFnError<NexusError>> {
     let client = dynamo_client()?;
     let session_id = get_session_cookie().await?;
     let email = get_email_from_session_id(session_id, &client).await?;
@@ -238,61 +186,30 @@ async fn change_value(name: &str, value: AttributeValue) -> Result<(), ServerFnE
         .expression_attribute_names("e".to_string(), name)
         .expression_attribute_values(":r", value)
         .send()
-        .await;
+        .await
+        .map_err(|e| aws_sdk_dynamodb::Error::from(e));
     match update_resp {
         Ok(_) => Ok(()),
-        Err(e) => Err(ServerFnError::new(match e.into_service_error() {
-            UpdateItemError::ConditionalCheckFailedException(e2) => {
-                log::error!("{:?}", e2);
-                NexusError::Unhandled
-            }
-            UpdateItemError::InternalServerError(e2) => {
-                log::error!("{:?}", e2);
-                NexusError::Unhandled
-            }
-            UpdateItemError::InvalidEndpointException(e2) => {
-                log::error!("{:?}", e2);
-                NexusError::Unhandled
-            }
-            UpdateItemError::ItemCollectionSizeLimitExceededException(e2) => {
-                log::error!("{:?}", e2);
-                NexusError::Unhandled
-            }
-            UpdateItemError::ProvisionedThroughputExceededException(e2) => {
-                log::error!("{:?}", e2);
-                NexusError::Unhandled
-            }
-            UpdateItemError::RequestLimitExceeded(e2) => {
-                log::error!("{:?}", e2);
-                NexusError::Unhandled
-            }
-            UpdateItemError::ResourceNotFoundException(e2) => {
-                log::error!("{:?}", e2);
-                NexusError::Unhandled
-            }
-            UpdateItemError::TransactionConflictException(e2) => {
-                log::error!("{:?}", e2);
-                NexusError::Unhandled
-            }
-            e2 => {
-                log::error!("{:?}", e2);
-                NexusError::Unhandled
-            }
-        })),
+        Err(e) => {
+            log::error!("Could not update value {}, {:?}", name, e);
+            Err(ServerFnError::from(NexusError::Unhandled))
+        }
     }
 }
 
-pub async fn change_display_name(new_display_name: String) -> Result<(), ServerFnError> {
+pub async fn change_display_name(
+    new_display_name: String,
+) -> Result<(), ServerFnError<NexusError>> {
     let mut censor = Censor::from_str(&new_display_name);
     let censor_type = censor.analyze();
     if censor_type.is(Type::MODERATE_OR_HIGHER) {
-        return Err(ServerFnError::new(NexusError::DisplayNameInappropriate));
+        return Err(ServerFnError::from(NexusError::DisplayNameInappropriate));
     }
     let display_name_av = AttributeValue::S(new_display_name);
     change_value(table_attributes::DISPLAY_NAME, display_name_av).await
 }
 
-pub async fn change_password(new_password: String) -> Result<(), ServerFnError> {
+pub async fn change_password(new_password: String) -> Result<(), ServerFnError<NexusError>> {
     let new_password_av = AttributeValue::S(new_password);
     change_value(table_attributes::PASSWORD, new_password_av).await
 }

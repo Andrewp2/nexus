@@ -20,7 +20,7 @@ use leptos::ServerFnError;
 pub async fn send_verification_email(
     email_address: String,
     verification_uuid: String,
-) -> Result<(), ServerFnError> {
+) -> Result<(), ServerFnError<NexusError>> {
     let ses_client = ses_client()?;
     let body = format!(
         "Hello,
@@ -61,8 +61,8 @@ If this was not you, you may ignore this email.",
     Ok(())
 }
 
-fn handle_send_email_error(e: SdkError<SendEmailError>) -> ServerFnError {
-    ServerFnError::new(match e.into_service_error() {
+fn handle_send_email_error(e: SdkError<SendEmailError>) -> ServerFnError<NexusError> {
+    ServerFnError::from(match e.into_service_error() {
         SendEmailError::AccountSendingPausedException(e) => {
             log::error!("{:?}", e);
             NexusError::GenericSesError
@@ -91,7 +91,7 @@ fn handle_send_email_error(e: SdkError<SendEmailError>) -> ServerFnError {
 }
 
 /// Verifies a given email_uuid
-pub async fn verify_email(email_uuid: String) -> Result<(), ServerFnError> {
+pub async fn verify_email(email_uuid: String) -> Result<(), ServerFnError<NexusError>> {
     let client = dynamo_client()?;
     // first we have to query to find the email address associated with this verification attempt.
     let db_query_result = client
@@ -131,7 +131,7 @@ pub async fn verify_email(email_uuid: String) -> Result<(), ServerFnError> {
 }
 
 fn handle_email_query_error(e: aws_sdk_dynamodb::error::SdkError<QueryError>) -> ServerFnError {
-    ServerFnError::new(match e.into_service_error() {
+    ServerFnError::from(match e.into_service_error() {
         QueryError::InternalServerError(e) => {
             log::error!("{:?}", e);
             NexusError::GenericDynamoServiceError
@@ -160,7 +160,7 @@ fn handle_email_query_error(e: aws_sdk_dynamodb::error::SdkError<QueryError>) ->
 }
 
 fn handle_verify_email_update_error(e: SdkError<UpdateItemError>) -> ServerFnError {
-    ServerFnError::new(match e.into_service_error() {
+    ServerFnError::from(match e.into_service_error() {
         UpdateItemError::ConditionalCheckFailedException(e) => {
             log::error!("{:?}", e);
             NexusError::GenericDynamoServiceError

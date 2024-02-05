@@ -6,7 +6,8 @@ use aws_sdk_dynamodb::{
 use leptos::ServerFnError;
 
 use crate::{
-    dynamo::constants::{get_table_name, index, table_attributes},
+    dynamo::constants::{index, table_attributes},
+    env_var::get_table_name,
     errors::NexusError,
 };
 
@@ -14,14 +15,17 @@ use super::utilities::{
     dynamo_client, extract_email_from_query, get_email_from_session_id, get_session_cookie,
 };
 
-pub async fn logout() -> Result<(), ServerFnError> {
+pub async fn logout() -> Result<(), ServerFnError<NexusError>> {
     let client = dynamo_client()?;
     let session_id_cookie = get_session_cookie().await?;
     let email = get_email_from_session_id(session_id_cookie, &client).await?;
     set_expiry_for_email(email, &client).await
 }
 
-async fn set_expiry_for_email(email: String, client: &Client) -> Result<(), ServerFnError> {
+async fn set_expiry_for_email(
+    email: String,
+    client: &Client,
+) -> Result<(), ServerFnError<NexusError>> {
     let db_update_result = client
         .update_item()
         .table_name(get_table_name())
@@ -30,48 +34,15 @@ async fn set_expiry_for_email(email: String, client: &Client) -> Result<(), Serv
         .expression_attribute_names("e".to_string(), table_attributes::SESSION_EXPIRY)
         .expression_attribute_values(":r", AttributeValue::N("0".to_string()))
         .send()
-        .await;
+        .await
+        .map_err(|e| aws_sdk_dynamodb::Error::from(e));
 
     match db_update_result {
         Ok(_) => Ok(()),
-        Err(e) => Err(ServerFnError::new(match e.into_service_error() {
-            UpdateItemError::ConditionalCheckFailedException(e2) => {
-                log::error!("set_expiry_for_mail Unexpected Error: {:?}", e2);
-                NexusError::Unhandled
-            }
-            UpdateItemError::InternalServerError(e2) => {
-                log::error!("set_expiry_for_mail Unexpected Error: {:?}", e2);
-                NexusError::Unhandled
-            }
-            UpdateItemError::InvalidEndpointException(e2) => {
-                log::error!("set_expiry_for_mail Unexpected Error: {:?}", e2);
-                NexusError::Unhandled
-            }
-            UpdateItemError::ItemCollectionSizeLimitExceededException(e2) => {
-                log::error!("set_expiry_for_mail Unexpected Error: {:?}", e2);
-                NexusError::Unhandled
-            }
-            UpdateItemError::ProvisionedThroughputExceededException(e2) => {
-                log::error!("set_expiry_for_mail Unexpected Error: {:?}", e2);
-                NexusError::Unhandled
-            }
-            UpdateItemError::RequestLimitExceeded(e2) => {
-                log::error!("set_expiry_for_mail Unexpected Error: {:?}", e2);
-                NexusError::Unhandled
-            }
-            UpdateItemError::ResourceNotFoundException(e2) => {
-                log::error!("set_expiry_for_mail Unexpected Error: {:?}", e2);
-                NexusError::Unhandled
-            }
-            UpdateItemError::TransactionConflictException(e2) => {
-                log::error!("set_expiry_for_mail Unexpected Error: {:?}", e2);
-                NexusError::Unhandled
-            }
-            e2 => {
-                log::error!("set_expiry_for_mail Unexpected Error: {:?}", e2);
-                NexusError::Unhandled
-            }
-        })),
+        Err(e) => {
+            log::error!("set_expiry_for_mail Unexpected error: {:?}", e);
+            Err(ServerFnError::from(NexusError::Unhandled))
+        }
     }
 }
 

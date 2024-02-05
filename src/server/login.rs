@@ -1,9 +1,9 @@
 use super::utilities::{dynamo_client, session_lifespan, verify_password};
 use crate::{
-    dynamo::constants::{
-        get_table_name,
-        table_attributes::{EMAIL, EMAIL_VERIFIED, PASSWORD, SESSION_EXPIRY, SESSION_ID},
+    dynamo::constants::table_attributes::{
+        EMAIL, EMAIL_VERIFIED, PASSWORD, SESSION_EXPIRY, SESSION_ID,
     },
+    env_var::get_table_name,
     errors::NexusError,
 };
 use aws_sdk_dynamodb::{
@@ -20,7 +20,11 @@ use leptos::{expect_context, ServerFnError};
 use leptos_axum::ResponseOptions;
 use uuid::Uuid;
 
-pub async fn login(email: String, password: String, remember: bool) -> Result<(), ServerFnError> {
+pub async fn login(
+    email: String,
+    password: String,
+    remember: bool,
+) -> Result<(), ServerFnError<NexusError>> {
     let client = dynamo_client()?;
     let columns_to_query = vec![EMAIL, PASSWORD, EMAIL_VERIFIED];
     let check_if_password_exists_filter_expression = format!("attribute_exists({})", PASSWORD);
@@ -38,11 +42,15 @@ pub async fn login(email: String, password: String, remember: bool) -> Result<()
 
     let (password_database_hash, verified) = match db_result {
         Ok(val) => Ok(get_hash_and_verified_status_from_query(val)?),
-        Err(e) => Err(handle_login_query_error(e)),
+        Err(e) => Err({
+            let ne = aws_sdk_dynamodb::Error::from(e);
+            log::error!("{:?}", ne);
+            ServerFnError::from(NexusError::GenericDynamoServiceError)
+        }),
     }?;
 
     if !verified {
-        return Err(ServerFnError::new(NexusError::AccountNotVerified));
+        return Err(ServerFnError::from(NexusError::AccountNotVerified));
     }
 
     match verify_password(&password, &password_database_hash) {
@@ -83,7 +91,7 @@ pub async fn login(email: String, password: String, remember: bool) -> Result<()
                         return Ok(());
                     }
                     log::error!("Unable to create cookie {}", cookie);
-                    Err(ServerFnError::new(NexusError::Unhandled))
+                    Err(ServerFnError::from(NexusError::Unhandled))
                 }
                 Err(e) => Err(handle_login_update_error(e)),
             }
@@ -91,46 +99,16 @@ pub async fn login(email: String, password: String, remember: bool) -> Result<()
         // https://security.stackexchange.com/questions/227524/password-reset-giving-clues-of-possible-valid-email-addresses/227566#227566
         // TL;DR it is fine from a UX standpoint to say specifically they have the incorrect password, yes this does leak the fact
         // that a specific email address is logged in
-        false => Err(ServerFnError::new(NexusError::IncorrectPassword)),
+        false => Err(ServerFnError::from(NexusError::IncorrectPassword)),
     }
-}
-
-fn handle_login_query_error(e: SdkError<QueryError>) -> ServerFnError {
-    ServerFnError::new(match e.into_service_error() {
-        QueryError::InternalServerError(e) => {
-            log::error!("{:?}", e);
-            NexusError::GenericDynamoServiceError
-        }
-        QueryError::InvalidEndpointException(e) => {
-            log::error!("{:?}", e);
-            NexusError::GenericDynamoServiceError
-        }
-        QueryError::ProvisionedThroughputExceededException(e) => {
-            log::error!("{:?}", e);
-            NexusError::GenericDynamoServiceError
-        }
-        QueryError::RequestLimitExceeded(e) => {
-            log::error!("{:?}", e);
-            NexusError::GenericDynamoServiceError
-        }
-        QueryError::ResourceNotFoundException(e) => {
-            log::error!("{:?}", e);
-            NexusError::GenericDynamoServiceError
-        }
-        e => {
-            log::error!("{:?}", e);
-            NexusError::GenericDynamoServiceError
-        }
-    })
 }
 
 fn get_hash_and_verified_status_from_query(
     val: QueryOutput,
-) -> Result<(String, bool), ServerFnError> {
-    let item = val
-        .items()
-        .first()
-        .ok_or(ServerFnError::new(NexusError::CouldNotFindRowWithThatEmail))?;
+) -> Result<(String, bool), ServerFnError<NexusError>> {
+    let item = val.items().first().ok_or(ServerFnError::from(
+        NexusError::CouldNotFindRowWithThatEmail,
+    ))?;
     let blob = item
         .get(PASSWORD)
         .ok_or_else(|| -> ServerFnError {
@@ -163,13 +141,13 @@ fn get_hash_and_verified_status_from_query(
         .as_bool()
         .map_err(|e| {
             log::error!("Could not convert EMAIL_VERIFIED to boolean {:?}", e);
-            ServerFnError::new(NexusError::Unhandled)
+            ServerFnError::from(NexusError::Unhandled)
         })?;
     Ok((hash_string, *email_verified))
 }
 
-fn handle_login_update_error(e: SdkError<UpdateItemError>) -> ServerFnError {
-    ServerFnError::new(match e.into_service_error() {
+fn handle_login_update_error(e: SdkError<UpdateItemError>) -> ServerFnError<NexusError> {
+    ServerFnError::from(match e.into_service_error() {
         UpdateItemError::ConditionalCheckFailedException(e) => {
             // TODO: Check if this needs to be logged, as this occurs when we could not update the session_id/session_expiry
             log::error!("{:?}", e);
