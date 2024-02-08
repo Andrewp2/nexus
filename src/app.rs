@@ -1,5 +1,3 @@
-use std::error::Error;
-
 use crate::{
     common::{footer::Footer, header::Header},
     error_template::{AppError, ErrorTemplate},
@@ -11,11 +9,10 @@ use crate::{
         end_user_license_agreement::EndUserLicenseAgreement, home::Home,
         login_and_signup::LoginAndSignup, support_faq::SupportFAQ,
     },
-    server::public::Login,
 };
-use leptos::*;
-use leptos_meta::*;
-use leptos_router::*;
+use leptos::{component, view, Errors, IntoView};
+use leptos_meta::{provide_meta_context, Stylesheet, Title};
+use leptos_router::{Route, Router, Routes};
 
 #[component]
 pub fn App() -> impl IntoView {

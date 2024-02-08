@@ -10,9 +10,14 @@ pub fn Checkout() -> impl IntoView {
     let script = format!(
         "
     async function startStripeCheckout(clientSecret) {{
-       const stripe = Stripe('{}');
-       let checkout = await stripe.initEmbeddedCheckout({{clientSecret: clientSecret}});
-       checkout.mount('#checkout');
+        const stripe = Stripe('{}');
+        try {{
+            let checkout = await stripe.initEmbeddedCheckout({{clientSecret: clientSecret}});
+            checkout.mount('#checkout');
+        }} catch (error) {{
+            console.error(\"Checkout failed:\", error.message);
+            alert(\"Checkout process failed. Please try again later.\");
+        }}
     }}
     ",
         std::env!("STRIPE_PUBLIC_KEY")
@@ -35,7 +40,8 @@ pub fn Checkout() -> impl IntoView {
                             <script>
                                 {format!(
                                     "startStripeCheckout('{}');",
-                                    client_secret.unwrap_or("hi".to_owned()),
+                                    client_secret
+                                        .expect("Able to get client secret from checkout creation"),
                                 )}
 
                             </script>

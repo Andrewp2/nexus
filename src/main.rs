@@ -1,22 +1,18 @@
 use axum::{
     body::Body as AxumBody,
-    extract::{Path, RawQuery, State},
+    extract::{Path, State},
     http::Request,
     response::{IntoResponse, Response},
-    routing::get,
-    Router,
 };
 use http::HeaderMap;
-use leptos::{get_configuration, logging::log, provide_context};
-use leptos_axum::{generate_route_list, handle_server_fns_with_context, LeptosRoutes};
+use leptos::{logging::log, provide_context};
+use leptos_axum::handle_server_fns_with_context;
 use nexus::{app::App, app_state::AppState};
 use stripe::Client as StripeClient;
 
-pub async fn server_fn_handler(
+async fn server_fn_handler(
     State(app_state): State<AppState>,
     path: Path<String>,
-    headers: HeaderMap,
-    raw_query: RawQuery,
     request: Request<AxumBody>,
 ) -> impl IntoResponse {
     log!("{:?}", path);
@@ -24,13 +20,16 @@ pub async fn server_fn_handler(
     handle_server_fns_with_context(
         move || {
             provide_context(app_state.dynamodb_client.clone());
+            provide_context(app_state.ses_client.clone());
+            provide_context(app_state.stripe_client.clone());
+            log::error!("context provided 2");
         },
         request,
     )
     .await
 }
 
-pub async fn leptos_routes_handler(
+async fn leptos_routes_handler(
     State(app_state): State<AppState>,
     req: Request<AxumBody>,
 ) -> Response {
@@ -39,6 +38,9 @@ pub async fn leptos_routes_handler(
         app_state.routes.clone(),
         move || {
             provide_context(app_state.dynamodb_client.clone());
+            provide_context(app_state.ses_client.clone());
+            provide_context(app_state.stripe_client.clone());
+            log::error!("Context provided");
         },
         App,
     );
@@ -72,14 +74,14 @@ async fn main() {
 
     let aws_sdk_config = aws_config::load_defaults(BehaviorVersion::latest()).await;
 
-    let secret_key = std::env::var("STRIPE_SECRET_KEY").expect("Missing STRIPE_SECRET_KEY in env");
-    let stripe_client = StripeClient::new(secret_key);
+    let stripe_secret_key =
+        std::env::var("STRIPE_SECRET_KEY").expect("Missing STRIPE_SECRET_KEY in env");
     let app_state = AppState {
         leptos_options,
         routes: routes.clone(),
         dynamodb_client: DynamoClient::new(&aws_sdk_config).into(),
         ses_client: SesClient::new(&aws_sdk_config).into(),
-        stripe_client: stripe_client.into(),
+        stripe_client: StripeClient::new(stripe_secret_key).into(),
     };
 
     // build our application with a route

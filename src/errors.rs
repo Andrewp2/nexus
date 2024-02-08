@@ -1,9 +1,9 @@
 use core::fmt;
-use std::{error::Error, str::FromStr};
+use std::str::FromStr;
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 #[serde(rename_all = "snake_case")]
 pub enum NexusError {
     PasswordsNotMatching,

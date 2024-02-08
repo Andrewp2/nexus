@@ -5,12 +5,7 @@ use argon2::{
     Argon2,
 };
 use aws_sdk_dynamodb::{
-    operation::{
-        get_item::GetItemError,
-        query::{QueryError, QueryOutput},
-    },
-    types::AttributeValue,
-    Client as DynamoClient,
+    operation::query::QueryOutput, types::AttributeValue, Client as DynamoClient,
 };
 use aws_sdk_ses::Client as SesClient;
 use axum_extra::extract::CookieJar;
@@ -38,7 +33,10 @@ pub fn ses_client() -> Result<SesClient, ServerFnError<NexusError>> {
 }
 
 pub fn stripe_client() -> Result<StripeClient, ServerFnError<NexusError>> {
-    use_context::<StripeClient>().ok_or_else(|| ServerFnError::from(NexusError::Unhandled))
+    use_context::<StripeClient>().ok_or_else(|| {
+        log::error!("Could not get Stripe client");
+        ServerFnError::from(NexusError::Unhandled)
+    })
 }
 
 pub fn hash_password(password: &str) -> Result<String, Error> {
@@ -67,7 +65,7 @@ pub fn session_lifespan(remember: bool) -> chrono::Duration {
 
 pub async fn get_session_cookie() -> Result<String, ServerFnError<NexusError>> {
     let cookie_jar: CookieJar = extract().await.map_err(|e| {
-        log::error!("Could not get cookie jar");
+        log::error!("Could not get cookie jar {:?}", e);
         NexusError::Unhandled
     })?;
     let session_id = cookie_jar.get(SESSION_ID).ok_or_else(|| {
@@ -85,25 +83,6 @@ pub async fn get_session_cookie() -> Result<String, ServerFnError<NexusError>> {
         .to_string();
 
     return Ok(f);
-    // Ok(extract(|cookie_jar: CookieJar| async move { cookie_jar })
-    //     .await
-    //     .map_err(|e| {
-    //         log::error!("Couldn't extract cookie_jar {:?}", e);
-    //         ServerFnError::from(NexusError::Unhandled)
-    //     })?
-    //     .get(SESSION_ID)
-    //     .ok_or_else(|| {
-    //         log::error!("Couldn't get session_id from cookie_jar");
-    //         ServerFnError::from(NexusError::Unhandled)
-    //     })?
-    //     .value()
-    //     .to_string()
-    //     .strip_prefix("__Host-")
-    //     .ok_or_else(|| {
-    //         log::error!("Couldn't remove __Host- prefix from cookie");
-    //         ServerFnError::from(NexusError::Unhandled)
-    //     })?
-    //     .to_owned())
 }
 
 pub async fn check_if_session_is_valid(
@@ -120,7 +99,8 @@ pub async fn check_if_session_is_valid(
         .expression_attribute_names(":v", session_id_cookie.clone())
         .projection_expression([SESSION_ID, SESSION_EXPIRY, EMAIL].join(", "))
         .send()
-        .await;
+        .await
+        .map_err(|e| aws_sdk_dynamodb::Error::from(e));
 
     match query {
         Ok(o) => {
@@ -175,32 +155,7 @@ pub async fn check_if_session_is_valid(
                 email.to_owned(),
             ))
         }
-        Err(e) => Err(ServerFnError::from(match e.into_service_error() {
-            QueryError::InternalServerError(e2) => {
-                log::error!("{:?}", e2);
-                NexusError::GenericDynamoServiceError
-            }
-            QueryError::InvalidEndpointException(e2) => {
-                log::error!("{:?}", e2);
-                NexusError::GenericDynamoServiceError
-            }
-            QueryError::ProvisionedThroughputExceededException(e2) => {
-                log::error!("{:?}", e2);
-                NexusError::GenericDynamoServiceError
-            }
-            QueryError::RequestLimitExceeded(e2) => {
-                log::error!("{:?}", e2);
-                NexusError::GenericDynamoServiceError
-            }
-            QueryError::ResourceNotFoundException(e2) => {
-                log::error!("{:?}", e2);
-                NexusError::GenericDynamoServiceError
-            }
-            e2 => {
-                log::error!("{:?}", e2);
-                NexusError::GenericDynamoServiceError
-            }
-        })),
+        Err(e) => Err(handle_dynamo_generic_error(e)),
     }
 }
 
@@ -242,7 +197,8 @@ pub async fn check_email_uniqueness(
         .key(EMAIL, AttributeValue::S(email))
         .projection_expression([EMAIL].join(", "))
         .send()
-        .await;
+        .await
+        .map_err(|e| aws_sdk_dynamodb::Error::from(e));
 
     match db_query {
         Ok(o) => {
@@ -253,32 +209,7 @@ pub async fn check_email_uniqueness(
             let item = items.get(EMAIL);
             Ok(item.is_none())
         }
-        Err(e) => match e.into_service_error() {
-            GetItemError::InternalServerError(e2) => {
-                log::error!("check_new_email_uniqueness error {:?}", e2);
-                Err(ServerFnError::from(NexusError::Unhandled))
-            }
-            GetItemError::InvalidEndpointException(e2) => {
-                log::error!("check_new_email_uniqueness error {:?}", e2);
-                Err(ServerFnError::from(NexusError::Unhandled))
-            }
-            GetItemError::ProvisionedThroughputExceededException(e2) => {
-                log::error!("check_new_email_uniqueness error {:?}", e2);
-                Err(ServerFnError::from(NexusError::Unhandled))
-            }
-            GetItemError::RequestLimitExceeded(e2) => {
-                log::error!("check_new_email_uniqueness error {:?}", e2);
-                Err(ServerFnError::from(NexusError::Unhandled))
-            }
-            GetItemError::ResourceNotFoundException(e2) => {
-                log::error!("check_new_email_uniqueness error {:?}", e2);
-                Err(ServerFnError::from(NexusError::Unhandled))
-            }
-            e2 => {
-                log::error!("check_new_email_uniqueness error {:?}", e2);
-                Err(ServerFnError::from(NexusError::Unhandled))
-            }
-        },
+        Err(e) => Err(handle_dynamo_generic_error(e)),
     }
 }
 
@@ -295,38 +226,19 @@ pub async fn get_email_from_session_id(
         .expression_attribute_names("k".to_string(), table_attributes::SESSION_ID)
         .expression_attribute_values(":v".to_string(), AttributeValue::S(session_id_cookie))
         .send()
-        .await;
+        .await
+        .map_err(|e| aws_sdk_dynamodb::Error::from(e));
 
     let email = match db_query_result {
         Ok(o) => Ok(extract_email_from_query(o)?),
-        Err(e) => Err(ServerFnError::from(match e.into_service_error() {
-            QueryError::InternalServerError(e2) => {
-                log::error!("get_email_from_session_id {:?}", e2);
-                NexusError::Unhandled
-            }
-            QueryError::InvalidEndpointException(e2) => {
-                log::error!("get_email_from_session_id {:?}", e2);
-                NexusError::Unhandled
-            }
-            QueryError::ProvisionedThroughputExceededException(e2) => {
-                log::error!("get_email_from_session_id {:?}", e2);
-                NexusError::Unhandled
-            }
-            QueryError::RequestLimitExceeded(e2) => {
-                log::error!("get_email_from_session_id {:?}", e2);
-                NexusError::Unhandled
-            }
-            QueryError::ResourceNotFoundException(e2) => {
-                log::error!("get_email_from_session_id {:?}", e2);
-                NexusError::Unhandled
-            }
-            e2 => {
-                log::error!("get_email_from_session_id {:?}", e2);
-                NexusError::Unhandled
-            }
-        })),
+        Err(e) => Err(handle_dynamo_generic_error(e)),
     }?;
 
     Ok(email)
+}
+
+pub fn handle_dynamo_generic_error(e: aws_sdk_dynamodb::Error) -> ServerFnError<NexusError> {
+    log::error!("{:?}", e);
+    ServerFnError::from(NexusError::GenericDynamoServiceError)
 }
 

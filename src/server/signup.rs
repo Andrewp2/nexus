@@ -1,5 +1,5 @@
 use super::{
-    utilities::{check_email_uniqueness, dynamo_client, hash_password},
+    utilities::{dynamo_client, hash_password},
     verify_email::send_verification_email,
 };
 use crate::{
@@ -10,7 +10,7 @@ use crate::{
     env_var::get_table_name,
     errors::NexusError,
 };
-use aws_sdk_dynamodb::{error::SdkError, operation::put_item::PutItemError, types::AttributeValue};
+use aws_sdk_dynamodb::types::AttributeValue;
 use chrono::Utc;
 use email_address::EmailAddress;
 use leptos::ServerFnError;
@@ -69,52 +69,24 @@ pub async fn signup(
         )
         .condition_expression(check_email_not_exists_expression)
         .send()
-        .await;
+        .await
+        .map_err(|e| aws_sdk_dynamodb::Error::from(e));
 
     match db_result {
         Ok(_) => Ok(()),
-        Err(e) => Err(handle_signup_put_error(e)),
+        Err(e) => Err(ServerFnError::from(match e {
+            aws_sdk_dynamodb::Error::ConditionalCheckFailedException(_) => {
+                NexusError::BadUsernameEmailCombination
+            }
+            e2 => {
+                log::error!("{:?}", e2);
+                NexusError::GenericDynamoServiceError
+            }
+        })),
     }?;
+
     send_verification_email(email, email_verification_uuid).await?;
     leptos_axum::redirect("/email_verification/");
     Ok(())
-}
-
-fn handle_signup_put_error(e: SdkError<PutItemError>) -> ServerFnError {
-    ServerFnError::from(match e.into_service_error() {
-        PutItemError::ConditionalCheckFailedException(_) => NexusError::BadUsernameEmailCombination,
-        PutItemError::InternalServerError(e) => {
-            log::error!("{:?}", e);
-            NexusError::GenericDynamoServiceError
-        }
-        PutItemError::InvalidEndpointException(e) => {
-            log::error!("{:?}", e);
-            NexusError::GenericDynamoServiceError
-        }
-        PutItemError::ItemCollectionSizeLimitExceededException(e) => {
-            log::error!("{:?}", e);
-            NexusError::GenericDynamoServiceError
-        }
-        PutItemError::ProvisionedThroughputExceededException(e) => {
-            log::error!("{:?}", e);
-            NexusError::GenericDynamoServiceError
-        }
-        PutItemError::RequestLimitExceeded(e) => {
-            log::error!("{:?}", e);
-            NexusError::GenericDynamoServiceError
-        }
-        PutItemError::ResourceNotFoundException(e) => {
-            log::error!("{:?}", e);
-            NexusError::GenericDynamoServiceError
-        }
-        PutItemError::TransactionConflictException(e) => {
-            log::error!("{:?}", e);
-            NexusError::GenericDynamoServiceError
-        }
-        e => {
-            log::error!("{:?}", e);
-            NexusError::GenericDynamoServiceError
-        }
-    })
 }
 

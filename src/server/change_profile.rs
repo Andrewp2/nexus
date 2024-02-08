@@ -1,4 +1,7 @@
-use super::utilities::{dynamo_client, get_email_from_session_id, get_session_cookie, ses_client};
+use super::utilities::{
+    dynamo_client, get_email_from_session_id, get_session_cookie, handle_dynamo_generic_error,
+    ses_client,
+};
 use crate::{
     dynamo::constants::{
         index::EMAIL_VERIFICATION_UUID,
@@ -44,10 +47,7 @@ pub async fn change_email_request(new_email: String) -> Result<(), ServerFnError
 
     let user = match old_user_query {
         Ok(o) => Ok(o),
-        Err(e) => {
-            log::error!("{:?}", e);
-            Err(ServerFnError::from(NexusError::Unhandled))
-        }
+        Err(e) => Err(handle_dynamo_generic_error(e)),
     }?;
     let items = user.items.ok_or_else(|| {
         log::error!("Could not get items from user");
@@ -163,8 +163,6 @@ If you did not request an email address change, please change your password.",
     match email_send_resp {
         Ok(_) => Ok(()),
         Err(e) => Err({
-            let e = e;
-            let new_email = new_email;
             log::error!("Warning, we created a new account for {} but we weren't able to send them the verification email!", new_email);
             log::error!("{:?}", e);
             ServerFnError::from(NexusError::Unhandled)
@@ -190,10 +188,7 @@ async fn change_value(name: &str, value: AttributeValue) -> Result<(), ServerFnE
         .map_err(|e| aws_sdk_dynamodb::Error::from(e));
     match update_resp {
         Ok(_) => Ok(()),
-        Err(e) => {
-            log::error!("Could not update value {}, {:?}", name, e);
-            Err(ServerFnError::from(NexusError::Unhandled))
-        }
+        Err(e) => Err(handle_dynamo_generic_error(e)),
     }
 }
 

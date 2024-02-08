@@ -13,6 +13,7 @@ use crate::{
 
 use super::utilities::{
     dynamo_client, extract_email_from_query, get_email_from_session_id, get_session_cookie,
+    handle_dynamo_generic_error,
 };
 
 pub async fn logout() -> Result<(), ServerFnError<NexusError>> {
@@ -39,10 +40,7 @@ async fn set_expiry_for_email(
 
     match db_update_result {
         Ok(_) => Ok(()),
-        Err(e) => {
-            log::error!("set_expiry_for_mail Unexpected error: {:?}", e);
-            Err(ServerFnError::from(NexusError::Unhandled))
-        }
+        Err(e) => Err(handle_dynamo_generic_error(e)),
     }
 }
 

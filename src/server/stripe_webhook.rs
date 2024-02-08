@@ -4,13 +4,12 @@ use axum::{
     extract::FromRequest,
     http::Request,
     response::{IntoResponse, Response},
-    Extension, RequestExt,
+    Extension,
 };
 use headers::Header;
 use http::{HeaderName, HeaderValue, StatusCode};
 use std::{fmt::Debug, str::FromStr};
 use stripe::{CheckoutSession, Event as WebhookEvent, EventObject, EventType, Webhook};
-use uuid::Uuid;
 
 use crate::{
     app_state::AppState,
@@ -134,18 +133,9 @@ async fn checkout_session_completed(
     let email = checkout_session
         .customer_email
         .ok_or(not_found("customer_email"))?;
-    // let _user_id = metadata
-    //     .get("user_id")
-    //     .ok_or(not_found("user_id metadata"))?;
-    // let _checkout_id = checkout_session.id.to_string();
     let item_id = metadata
         .get("item_id")
         .ok_or(not_found("item_id metadata"))?;
-    let item_id = Uuid::from_str(item_id).map_err(|err| {
-        log::error!("{err:?}");
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("{err:?}"))
-    })?;
-
     let update = dynamo_client
         .update_item()
         .table_name(get_table_name())
@@ -154,21 +144,26 @@ async fn checkout_session_completed(
         .expression_attribute_names("#listAttr", "listAttributeName")
         .expression_attribute_values(
             ":newElement",
-            AttributeValue::L(vec![AttributeValue::S("newElementValue".to_string())]),
+            AttributeValue::L(vec![AttributeValue::S(item_id.to_string())]),
         )
         .send()
-        .await;
-
+        .await
+        .map_err(|e| aws_sdk_dynamodb::Error::from(e));
     match update {
-        Ok(_) => todo!(),
-        Err(_) => todo!(),
+        Ok(_) => Ok(()),
+        Err(e) => {
+            log::error!("Could not update dynamo table after checkout session!!!! This is really important!!! {:?}", e);
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Could not update database".to_string(),
+            ))
+        }
     }
-    Ok(())
 }
 
 async fn process_checkout(
     dynamo_client: &aws_sdk_dynamodb::Client,
-    stripe_client: &stripe::Client,
+    _stripe_client: &stripe::Client,
     checkout_session: CheckoutSession,
     event_type: EventType,
 ) -> Result<(), (StatusCode, String)> {

@@ -6,7 +6,7 @@ use crate::errors::NexusError;
 // TODO: Implement rate limiting? Handle on API Gateway instead of here maybe?
 
 /// Logs the given user in
-#[server(Login, "/api/login")]
+#[server(Login, "/api", "Url", "login")]
 pub async fn login(
     email: String,
     password: String,
@@ -17,7 +17,7 @@ pub async fn login(
 }
 
 /// Logs the user out
-#[server(Logout, "/api/logout")]
+#[server(Logout, "/api", "Url", "logout")]
 pub async fn logout() -> Result<(), ServerFnError<NexusError>> {
     use super::logout::logout;
     logout().await
@@ -25,7 +25,7 @@ pub async fn logout() -> Result<(), ServerFnError<NexusError>> {
 
 /// Server function that signs the user up.
 /// Sends an email to the given email address.
-#[server(Signup, "/api/signup")]
+#[server(Signup, "/api", "Url", "signup")]
 pub async fn signup(
     display_name: String,
     email: String,
@@ -36,19 +36,19 @@ pub async fn signup(
     return signup(display_name, email, password, password_confirmation).await;
 }
 
-#[server(VerifyEmail, "/api/verify_email")]
+#[server(VerifyEmail, "/api", "Url", "verify_email")]
 pub async fn verify_email(email_uuid: String) -> Result<(), ServerFnError<NexusError>> {
     use super::verify_email::verify_email;
     verify_email(email_uuid).await
 }
 
-#[server(ChangeEmailRequest, "/api/change_email_request")]
+#[server(ChangeEmailRequest, "/api", "Url", "change_email_request")]
 pub async fn change_email_request(new_email: String) -> Result<(), ServerFnError<NexusError>> {
     use super::change_profile::change_email_request;
     change_email_request(new_email).await
 }
 
-#[server(ChangeDisplayName, "/api/change_display_name")]
+#[server(ChangeDisplayName, "/api", "Url", "change_display_name")]
 pub async fn change_display_name(
     new_display_name: String,
 ) -> Result<(), ServerFnError<NexusError>> {
@@ -56,13 +56,13 @@ pub async fn change_display_name(
     change_display_name(new_display_name).await
 }
 
-#[server(ChangePassword, "/api/change_password")]
+#[server(ChangePassword, "/api", "Url", "change_password")]
 pub async fn change_password(new_password: String) -> Result<(), ServerFnError<NexusError>> {
     use super::change_profile::change_password;
     change_password(new_password).await
 }
 
-#[server(CreateCheckout, "/api/create_checkout")]
+#[server(CreateCheckout, "/api", "Url", "create_checkout")]
 pub async fn create_checkout() -> Result<String, ServerFnError<NexusError>> {
     use super::create_checkout::create_checkout;
     create_checkout().await

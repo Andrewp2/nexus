@@ -1,5 +1,8 @@
 #[cfg(feature = "ssr")]
 pub mod constants {
+
+    pub const GAME_NAME_1: &str = "game_1";
+
     pub mod table_attributes {
         pub const DISPLAY_NAME: &str = "display_name";
         pub const EMAIL: &str = "email";
