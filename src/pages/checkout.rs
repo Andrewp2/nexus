@@ -4,8 +4,10 @@ use crate::server::public::create_checkout;
 
 #[component]
 pub fn Checkout() -> impl IntoView {
-    let checkout_resource =
-        create_local_resource(|| (), |_| async move { create_checkout().await });
+    // let checkout_resource =
+    //     create_local_resource(|| (), |_| async move { create_checkout().await });
+
+    let checkout_resource = create_resource(|| (), |_| async move { create_checkout().await });
 
     let script = format!(
         "
@@ -30,26 +32,31 @@ pub fn Checkout() -> impl IntoView {
     view! {
         <h1>"Checkout Page"</h1>
         <script inner_html=script></script>
-        {move || match checkout_resource.get() {
-            None => view! { <div>"Creating checkout page..."</div> },
-            Some(client_secret) => {
-                view! {
-                    <div>
-                        <div id="checkout"></div>
-                        <ErrorBoundary fallback=|errors| view! { <div class="error"></div> }>
-                            <script>
-                                {format!(
-                                    "startStripeCheckout('{}');",
-                                    client_secret
-                                        .expect("Able to get client secret from checkout creation"),
-                                )}
+        <Suspense fallback=move || {
+            view! { <p>"Loading..."</p> }
+        }>
+            {move || match checkout_resource.get() {
+                None => view! { <div>"Creating checkout page..."</div> },
+                Some(client_secret) => {
+                    view! {
+                        <div>
+                            <div id="checkout"></div>
+                            <ErrorBoundary fallback=|errors| view! { <div class="error"></div> }>
+                                <script>
+                                    {format!(
+                                        "startStripeCheckout('{}');",
+                                        client_secret
+                                            .expect("Able to get client secret from checkout creation"),
+                                    )}
 
-                            </script>
-                        </ErrorBoundary>
-                    </div>
+                                </script>
+                            </ErrorBoundary>
+                        </div>
+                    }
                 }
-            }
-        }}
+            }}
+
+        </Suspense>
     }
 }
 
