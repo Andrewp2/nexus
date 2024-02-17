@@ -33,7 +33,7 @@ pub async fn signup(
     password_confirmation: String,
 ) -> Result<(), ServerFnError<NexusError>> {
     use super::signup::signup;
-    return signup(display_name, email, password, password_confirmation).await;
+    signup(display_name, email, password, password_confirmation).await
 }
 
 #[server(VerifyEmail, "/api", "Url", "verify_email")]

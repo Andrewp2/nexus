@@ -28,8 +28,10 @@ impl FromStr for NexusError {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        serde_json::de::from_str(s)
-            .map_err(|e| "Could not deserialize string into NexusError".to_string())
+        serde_json::de::from_str(s).map_err(|e| {
+            log::error!("error {:?}", e);
+            "Could not deserialize string into NexusError".to_string()
+        })
     }
 }
 

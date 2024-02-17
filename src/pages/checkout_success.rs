@@ -1,4 +1,4 @@
-use leptos::*;
+use leptos::{component, view, IntoView};
 
 #[component]
 pub fn CheckoutSuccess() -> impl IntoView {

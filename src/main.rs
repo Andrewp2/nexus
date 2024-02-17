@@ -4,7 +4,6 @@ use axum::{
     http::Request,
     response::{IntoResponse, Response},
 };
-use http::HeaderMap;
 use leptos::{logging::log, provide_context};
 use leptos_axum::handle_server_fns_with_context;
 use nexus::{app::App, app_state::AppState};
@@ -22,7 +21,7 @@ async fn server_fn_handler(
             provide_context(app_state.dynamodb_client.clone());
             provide_context(app_state.ses_client.clone());
             provide_context(app_state.stripe_client.clone());
-            log::error!("context provided 2");
+            provide_context(app_state.s3_client.clone());
         },
         request,
     )
@@ -40,7 +39,7 @@ async fn leptos_routes_handler(
             provide_context(app_state.dynamodb_client.clone());
             provide_context(app_state.ses_client.clone());
             provide_context(app_state.stripe_client.clone());
-            log::error!("Context provided");
+            provide_context(app_state.s3_client.clone());
         },
         App,
     );
@@ -52,6 +51,7 @@ async fn leptos_routes_handler(
 async fn main() {
     use aws_config::BehaviorVersion;
     use aws_sdk_dynamodb::Client as DynamoClient;
+    use aws_sdk_s3::Client as S3Client;
     use aws_sdk_ses::Client as SesClient;
     use axum::{routing::get, Router};
     use leptos::get_configuration;
@@ -82,6 +82,7 @@ async fn main() {
         dynamodb_client: DynamoClient::new(&aws_sdk_config).into(),
         ses_client: SesClient::new(&aws_sdk_config).into(),
         stripe_client: StripeClient::new(stripe_secret_key).into(),
+        s3_client: S3Client::new(&aws_sdk_config).into(),
     };
 
     // build our application with a route
@@ -89,6 +90,14 @@ async fn main() {
         .route(
             "/api/webhooks/stripe",
             axum::routing::post(server::stripe_webhook::stripe_webhook),
+        )
+        .route(
+            "/api/download/launcher/:os_type",
+            axum::routing::post(server::download::download_launcher::download_launcher),
+        )
+        .route(
+            "/api/download/:game/:platform/:version",
+            axum::routing::post(server::download::download_game_version::download_game_version),
         )
         .route(
             "/api/*fn_name",

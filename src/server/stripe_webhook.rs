@@ -8,7 +8,7 @@ use axum::{
 };
 use headers::Header;
 use http::{HeaderName, HeaderValue, StatusCode};
-use std::{fmt::Debug, str::FromStr};
+use std::fmt::Debug;
 use stripe::{CheckoutSession, Event as WebhookEvent, EventObject, EventType, Webhook};
 
 use crate::{
@@ -62,7 +62,7 @@ impl Header for StripeSignatureHeader {
     }
 }
 
-const MAX_ALLOWED_REQ_SIZE: u64 = 1_000_000; // one! million! bytes!
+const MAX_ALLOWED_REQ_SIZE: u64 = 1_000_000;
 pub struct SignedStripeEvent(pub WebhookEvent);
 
 pub fn handle_error(err: impl Debug) -> (StatusCode, String) {
@@ -74,7 +74,7 @@ pub fn handle_error(err: impl Debug) -> (StatusCode, String) {
 }
 
 #[async_trait::async_trait]
-impl<S: Sync + Sync> FromRequest<S, Body> for SignedStripeEvent {
+impl<S: Sync> FromRequest<S, Body> for SignedStripeEvent {
     type Rejection = ServerError;
 
     async fn from_request(req: Request<Body>, _: &S) -> Result<Self, Self::Rejection> {
@@ -188,7 +188,7 @@ pub async fn stripe_webhook(
     let stripe_client = state.stripe_client;
     let dynamo_client = state.dynamodb_client;
     let event_type = event.type_;
-    let idempotency_key = event.request.and_then(|req| req.idempotency_key);
+    let _idempotency_key = event.request.and_then(|req| req.idempotency_key);
     match event.data.object {
         EventObject::CheckoutSession(checkout) => {
             //process_checkout(&db, stripe, checkout, event_type).await?;

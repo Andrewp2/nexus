@@ -1,19 +1,10 @@
-use aws_sdk_dynamodb::{
-    operation::{query::QueryError, update_item::UpdateItemError},
-    types::AttributeValue,
-    Client,
-};
+use aws_sdk_dynamodb::{types::AttributeValue, Client};
 use leptos::ServerFnError;
 
-use crate::{
-    dynamo::constants::{index, table_attributes},
-    env_var::get_table_name,
-    errors::NexusError,
-};
+use crate::{dynamo::constants::table_attributes, env_var::get_table_name, errors::NexusError};
 
 use super::utilities::{
-    dynamo_client, extract_email_from_query, get_email_from_session_id, get_session_cookie,
-    handle_dynamo_generic_error,
+    dynamo_client, get_email_from_session_id, get_session_cookie, handle_dynamo_generic_error,
 };
 
 pub async fn logout() -> Result<(), ServerFnError<NexusError>> {

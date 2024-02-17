@@ -1,6 +1,5 @@
-use leptos::*;
-use leptos_meta::*;
-use leptos_router::*;
+use leptos::{component, view, IntoView};
+use leptos_router::A;
 
 #[component]
 pub fn Footer() -> impl IntoView {

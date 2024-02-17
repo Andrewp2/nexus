@@ -1,7 +1,6 @@
-use js_sys::*;
-use leptos::*;
+use leptos::{component, create_action, create_signal, view, IntoView};
 use wasm_bindgen::{JsCast, JsValue, UnwrapThrowExt};
-use web_sys::*;
+use web_sys::HtmlScriptElement;
 
 #[component]
 pub fn Home() -> impl IntoView {

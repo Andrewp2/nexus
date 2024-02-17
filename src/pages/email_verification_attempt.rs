@@ -1,5 +1,5 @@
-use leptos::*;
-use leptos_router::*;
+use leptos::{component, create_resource, view, IntoView, Params, SignalGet, SignalWith};
+use leptos_router::{use_params, Params};
 
 #[derive(Params, PartialEq, Clone)]
 pub struct EmailVerificationParams {

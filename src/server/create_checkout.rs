@@ -1,10 +1,10 @@
 use leptos::ServerFnError;
 use stripe::{
-    CheckoutSession, CheckoutSessionMode, Client, CreateCheckoutSession,
-    CreateCheckoutSessionLineItems, CreateCustomer, CreatePrice, CreateProduct, Currency, Customer,
-    Expandable, IdOrCreate, Price, Product,
+    CheckoutSession, CheckoutSessionMode, CreateCheckoutSession, CreateCheckoutSessionLineItems,
+    CreateCustomer, Customer,
 };
 
+#[allow(unused_imports)]
 use crate::{
     errors::NexusError,
     server::utilities::{
@@ -14,7 +14,6 @@ use crate::{
 };
 
 pub async fn create_checkout() -> Result<String, ServerFnError<NexusError>> {
-    log::error!("hello");
     let stripe_client = stripe_client()?;
     #[cfg(debug_assertions)]
     let email = "example@example.com".to_owned();
@@ -28,7 +27,6 @@ pub async fn create_checkout() -> Result<String, ServerFnError<NexusError>> {
             return Err(ServerFnError::from(NexusError::Unhandled));
         }
     }
-    log::error!("hello 2");
     let customer = Customer::create(
         &stripe_client,
         CreateCustomer {
@@ -47,8 +45,6 @@ pub async fn create_checkout() -> Result<String, ServerFnError<NexusError>> {
         ServerFnError::from(NexusError::Unhandled)
     })?;
 
-    log::error!("hello 3");
-
     log::info!(
         "created a customer at https://dashboard.stripe.com/test/customers/{}",
         customer.id
@@ -66,7 +62,6 @@ pub async fn create_checkout() -> Result<String, ServerFnError<NexusError>> {
     }]);
     params.expand = &["line_items", "line_items.data.price.product"];
     params.ui_mode = Some(stripe::CheckoutSessionUiMode::Embedded);
-    log::error!("hello");
     let checkout_session = CheckoutSession::create(&stripe_client, params)
         .await
         .map_err(|e| {
@@ -74,7 +69,6 @@ pub async fn create_checkout() -> Result<String, ServerFnError<NexusError>> {
             ServerFnError::from(NexusError::Unhandled)
         })?;
 
-    log::error!("hello 4");
     return match checkout_session.client_secret {
         Some(secret) => Ok(secret),
         None => Err(ServerFnError::from(NexusError::Unhandled)),

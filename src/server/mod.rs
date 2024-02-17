@@ -3,6 +3,8 @@ pub mod change_profile;
 #[cfg(feature = "ssr")]
 pub mod create_checkout;
 #[cfg(feature = "ssr")]
+pub mod download;
+#[cfg(feature = "ssr")]
 pub mod login;
 #[cfg(feature = "ssr")]
 pub mod logout;

@@ -11,15 +11,8 @@ use crate::{
     errors::NexusError,
     site::constants::{SITE_DOMAIN, SITE_EMAIL_ADDRESS, SITE_FULL_DOMAIN},
 };
-use aws_sdk_dynamodb::{
-    error::SdkError,
-    operation::{put_item::PutItemError, query::QueryError, update_item::UpdateItemError},
-    types::AttributeValue,
-};
-use aws_sdk_ses::{
-    operation::send_email::SendEmailError,
-    types::{Body, Content, Destination, Message},
-};
+use aws_sdk_dynamodb::types::AttributeValue;
+use aws_sdk_ses::types::{Body, Content, Destination, Message};
 use chrono::Utc;
 use email_address::EmailAddress;
 use leptos::ServerFnError;

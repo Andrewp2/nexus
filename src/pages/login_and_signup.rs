@@ -1,12 +1,13 @@
-use std::error::Error;
-
-use leptos::*;
-use leptos_router::*;
+use leptos::{component, create_server_action, view, IntoView, ReadSignal, WriteSignal};
+use leptos_router::ActionForm;
 
 use crate::server::public::{Login, Signup};
 
 #[component]
-pub fn LoginAndSignup() -> impl IntoView {
+pub fn LoginAndSignup(
+    logged_in: ReadSignal<bool>,
+    set_logged_in: WriteSignal<bool>,
+) -> impl IntoView {
     let login = create_server_action::<Login>();
     let sign_up = create_server_action::<Signup>();
     view! {

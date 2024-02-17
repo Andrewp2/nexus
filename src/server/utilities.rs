@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 use argon2::{
     password_hash::{Error, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
@@ -24,16 +24,16 @@ use crate::{
     errors::NexusError,
 };
 
-pub fn dynamo_client() -> Result<DynamoClient, ServerFnError<NexusError>> {
-    use_context::<DynamoClient>().ok_or_else(|| ServerFnError::from(NexusError::Unhandled))
+pub fn dynamo_client() -> Result<Arc<DynamoClient>, ServerFnError<NexusError>> {
+    use_context::<Arc<DynamoClient>>().ok_or_else(|| ServerFnError::from(NexusError::Unhandled))
 }
 
-pub fn ses_client() -> Result<SesClient, ServerFnError<NexusError>> {
-    use_context::<SesClient>().ok_or_else(|| ServerFnError::from(NexusError::Unhandled))
+pub fn ses_client() -> Result<Arc<SesClient>, ServerFnError<NexusError>> {
+    use_context::<Arc<SesClient>>().ok_or_else(|| ServerFnError::from(NexusError::Unhandled))
 }
 
-pub fn stripe_client() -> Result<StripeClient, ServerFnError<NexusError>> {
-    use_context::<StripeClient>().ok_or_else(|| {
+pub fn stripe_client() -> Result<Arc<StripeClient>, ServerFnError<NexusError>> {
+    use_context::<Arc<StripeClient>>().ok_or_else(|| {
         log::error!("Could not get Stripe client");
         ServerFnError::from(NexusError::Unhandled)
     })
@@ -68,10 +68,12 @@ pub async fn get_session_cookie() -> Result<String, ServerFnError<NexusError>> {
         log::error!("Could not get cookie jar {:?}", e);
         NexusError::Unhandled
     })?;
-    let session_id = cookie_jar.get(SESSION_ID).ok_or_else(|| {
-        log::error!("Couldn't get session_id from cookie_jar");
-        ServerFnError::from(NexusError::Unhandled)
-    })?;
+    let session_id = cookie_jar
+        .get(format!("__Host-{}", SESSION_ID).as_str())
+        .ok_or_else(|| {
+            log::error!("Couldn't get session_id from cookie_jar");
+            ServerFnError::from(NexusError::Unhandled)
+        })?;
     let f = session_id
         .value()
         .to_string()
@@ -185,6 +187,34 @@ pub fn extract_email_from_query(o: QueryOutput) -> Result<String, ServerFnError<
         .clone();
 
     Ok(email_string)
+}
+
+pub fn extract_id_from_query(o: QueryOutput) -> Result<String, ServerFnError<NexusError>> {
+    let items = o
+        .items
+        .ok_or_else(|| ServerFnError::from(NexusError::Unhandled))?
+        .clone();
+    let item = items
+        .first()
+        .ok_or_else(|| {
+            log::error!("Cannot get first item in extract_id_from_query");
+            ServerFnError::from(NexusError::Unhandled)
+        })?
+        .clone();
+    let user_uuid = item
+        .get(table_attributes::USER_UUID)
+        .ok_or_else(|| {
+            log::error!("Unable to find user_uuid attribute (should be impossible)");
+            ServerFnError::from(NexusError::Unhandled)
+        })?
+        .as_s()
+        .map_err(|e| {
+            log::error!("Could not get user_uuid as string {:?}", e);
+            ServerFnError::from(NexusError::Unhandled)
+        })?
+        .clone();
+
+    Ok(user_uuid)
 }
 
 pub async fn check_email_uniqueness(

@@ -1,5 +1,5 @@
-use leptos::*;
-use leptos_router::*;
+use leptos::{component, view, IntoView};
+use leptos_router::A;
 
 #[component]
 pub fn Community() -> impl IntoView {

@@ -10,7 +10,7 @@ use crate::{
         login_and_signup::LoginAndSignup, support_faq::SupportFAQ,
     },
 };
-use leptos::{component, view, Errors, IntoView};
+use leptos::{component, create_signal, view, Errors, IntoView};
 use leptos_meta::{provide_meta_context, Stylesheet, Title};
 use leptos_router::{Route, Router, Routes};
 
@@ -18,6 +18,9 @@ use leptos_router::{Route, Router, Routes};
 pub fn App() -> impl IntoView {
     // Provides context that manages stylesheets, titles, meta tags, etc.
     provide_meta_context();
+
+    let (logged_in, set_logged_in) = create_signal(false);
+
     view! {
         <Stylesheet id="leptos" href="/pkg/nexus.css"/>
 
@@ -49,12 +52,24 @@ pub fn App() -> impl IntoView {
                         <Route path="terms_of_service" view=EndUserLicenseAgreement/>
                         <Route path="credits" view=Credits/>
                         <Route path="support" view=SupportFAQ/>
-                        <Route path="log_in" view=LoginAndSignup/>
+                        <Route
+                            path="log_in"
+                            view=move || {
+                                view! {
+                                    <LoginAndSignup
+                                        logged_in=logged_in
+                                        set_logged_in=set_logged_in
+                                    />
+                                }
+                            }
+                        />
+
                         <Route path="email_verification" view=EmailVerification/>
                         <Route path="email_verification/:email_uuid" view=EmailVerificationAttempt/>
-                        <Route path="checkout" view=Checkout/>
-                        <Route path="checkout/cancel" view=CheckoutCancel/>
-                        <Route path="checkout/success" view=CheckoutSuccess/>
+                        <Route path="checkout" view=Checkout>
+                            <Route path="cancel" view=CheckoutCancel/>
+                            <Route path="success" view=CheckoutSuccess/>
+                        </Route>
                     </Routes>
                 </main>
                 <Footer/>
