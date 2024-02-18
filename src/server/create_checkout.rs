@@ -15,17 +15,20 @@ use crate::{
 
 pub async fn create_checkout() -> Result<String, ServerFnError<NexusError>> {
     let stripe_client = stripe_client()?;
+    let mut email = String::new();
     #[cfg(debug_assertions)]
-    let email = "example@example.com".to_owned();
+    email = "example@example.com".to_owned();
     #[cfg(not(debug_assertions))]
     {
         log::error!("release");
         let session_id_cookie = get_session_cookie().await?;
         let dynamo_client = dynamo_client()?;
-        let (valid, email) = check_if_session_is_valid(session_id_cookie, &dynamo_client).await?;
+        let (valid, email_fetched) =
+            check_if_session_is_valid(session_id_cookie, &dynamo_client).await?;
         if !valid {
             return Err(ServerFnError::from(NexusError::Unhandled));
         }
+        email = email_fetched;
     }
     let customer = Customer::create(
         &stripe_client,

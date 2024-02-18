@@ -4,7 +4,7 @@ use crate::{
     pages::{
         about::About, checkout::Checkout, checkout_cancel::CheckoutCancel,
         checkout_success::CheckoutSuccess, community::Community, credits::Credits,
-        email_verification::EmailVerification,
+        download::Download, email_verification::EmailVerification,
         email_verification_attempt::EmailVerificationAttempt,
         end_user_license_agreement::EndUserLicenseAgreement, home::Home,
         login_and_signup::LoginAndSignup, support_faq::SupportFAQ,
@@ -60,6 +60,15 @@ pub fn App() -> impl IntoView {
                                         logged_in=logged_in
                                         set_logged_in=set_logged_in
                                     />
+                                }
+                            }
+                        />
+
+                        <Route
+                            path="download"
+                            view=move || {
+                                view! {
+                                    <Download logged_in=logged_in set_logged_in=set_logged_in/>
                                 }
                             }
                         />
