@@ -15,6 +15,7 @@ use crate::{
 
 pub async fn create_checkout() -> Result<String, ServerFnError<NexusError>> {
     let stripe_client = stripe_client()?;
+    #[allow(unused_mut)]
     let mut email = "example@example.com".to_owned();
     #[cfg(not(debug_assertions))]
     {

@@ -43,7 +43,7 @@ pub fn App() -> impl IntoView {
             view! { <ErrorTemplate outside_errors/> }.into_view()
         }>
             <body>
-                <Header/>
+                <Header logged_in=logged_in/>
                 <main>
                     <Routes>
                         <Route path="" view=Home/>

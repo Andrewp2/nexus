@@ -46,6 +46,17 @@ pub fn LoginAndSignup(
             <ActionForm action=sign_up class="sign-up-form">
                 <h1>"Sign Up"</h1>
                 <label>
+                    "Display name:" <br/>
+                    <input
+                        type="text"
+                        placeholder="DisplayName"
+                        maxlength="64"
+                        name="display_name"
+                        required
+                    />
+                </label>
+                <br/>
+                <label>
                     "Email:" <br/>
                     <input type="email" placeholder="Email" maxlength="64" name="email" required/>
                 </label>

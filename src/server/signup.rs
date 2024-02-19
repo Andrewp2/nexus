@@ -13,6 +13,7 @@ use crate::{
 use aws_sdk_dynamodb::types::AttributeValue;
 use chrono::Utc;
 use email_address::EmailAddress;
+use leptos::logging::error;
 use leptos::ServerFnError;
 use rustrict::{Censor, Type};
 use uuid::Uuid;
@@ -24,14 +25,17 @@ pub async fn signup(
     password_confirmation: String,
 ) -> Result<(), ServerFnError<NexusError>> {
     if !EmailAddress::is_valid(email.as_str()) {
+        log::error!("Email address {} is not valid", email);
         return Err(ServerFnError::from(NexusError::BadEmailAddress));
     }
     if password != password_confirmation {
+        log::error!("Password and password confirmation did not match");
         return Err(ServerFnError::from(NexusError::PasswordsNotMatching));
     }
     let mut censor = Censor::from_str(&display_name);
     let censor_type = censor.analyze();
     if censor_type.is(Type::MODERATE_OR_HIGHER) {
+        log::error!("Display name did not pass censor");
         return Err(ServerFnError::from(NexusError::DisplayNameInappropriate));
     }
     let dynamo_client = dynamo_client()?;

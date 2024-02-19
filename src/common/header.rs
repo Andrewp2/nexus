@@ -1,8 +1,8 @@
-use leptos::{component, view, IntoView};
+use leptos::{component, view, IntoView, ReadSignal};
 use leptos_router::A;
 
 #[component]
-pub fn Header() -> impl IntoView {
+pub fn Header(logged_in: ReadSignal<bool>) -> impl IntoView {
     view! {
         <header class="header">
             <img/>
@@ -16,9 +16,7 @@ pub fn Header() -> impl IntoView {
                 </A>
             </nav>
             <div class="authgroup">
-                <A href="log_in">"Log in"</A>
-                |
-                <A href="log_in">"Sign up"</A>
+                {move || logged_in()} <A href="log_in">"Log in"</A> | <A href="log_in">"Sign up"</A>
             </div>
         </header>
     }
