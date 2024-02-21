@@ -41,4 +41,3 @@ async fn get_static_file(uri: Uri, root: &str) -> Result<Response<Body>, (Status
         )),
     }
 }
-

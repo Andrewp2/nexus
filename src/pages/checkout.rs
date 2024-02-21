@@ -51,4 +51,3 @@ pub fn Checkout() -> impl IntoView {
         </Suspense>
     }
 }
-

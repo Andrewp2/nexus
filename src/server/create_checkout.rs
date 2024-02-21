@@ -76,4 +76,3 @@ pub async fn create_checkout() -> Result<String, ServerFnError<NexusError>> {
         None => Err(ServerFnError::from(NexusError::Unhandled)),
     };
 }
-

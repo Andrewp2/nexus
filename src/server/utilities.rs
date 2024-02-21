@@ -271,4 +271,3 @@ pub fn handle_dynamo_generic_error(e: aws_sdk_dynamodb::Error) -> ServerFnError<
     log::error!("{:?}", e);
     ServerFnError::from(NexusError::GenericDynamoServiceError)
 }
-

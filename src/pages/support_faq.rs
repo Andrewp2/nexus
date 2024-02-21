@@ -16,4 +16,3 @@ pub fn SupportFAQ() -> impl IntoView {
         <p>Contact andrew@MySite.com for any issues with support not handled here.</p>
     }
 }
-

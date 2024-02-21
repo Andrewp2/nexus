@@ -109,4 +109,3 @@ pub async fn verify_email(email_uuid: String) -> Result<(), ServerFnError<NexusE
         Err(e) => Err(handle_dynamo_generic_error(e)),
     }
 }
-

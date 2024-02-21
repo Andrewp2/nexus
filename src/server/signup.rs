@@ -93,4 +93,3 @@ pub async fn signup(
     leptos_axum::redirect("/email_verification/");
     Ok(())
 }
-

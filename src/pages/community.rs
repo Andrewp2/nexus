@@ -9,4 +9,3 @@ pub fn Community() -> impl IntoView {
         </A>
     }
 }
-

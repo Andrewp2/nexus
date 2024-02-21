@@ -13,4 +13,3 @@ pub fn Footer() -> impl IntoView {
         </footer>
     }
 }
-

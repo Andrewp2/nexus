@@ -9,4 +9,3 @@ pub fn EmailVerification() -> impl IntoView {
         <h2>Click on that link, and you can log in as you wish.</h2>
     }
 }
-

@@ -60,4 +60,3 @@ pub async fn download_launcher(
             .unwrap(),
     }
 }
-

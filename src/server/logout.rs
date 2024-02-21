@@ -34,4 +34,3 @@ async fn set_expiry_for_email(
         Err(e) => Err(handle_dynamo_generic_error(e)),
     }
 }
-

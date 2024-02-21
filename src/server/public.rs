@@ -67,4 +67,3 @@ pub async fn create_checkout() -> Result<String, ServerFnError<NexusError>> {
     use super::create_checkout::create_checkout;
     create_checkout().await
 }
-

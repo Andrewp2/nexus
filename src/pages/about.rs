@@ -12,4 +12,3 @@ pub fn About() -> impl IntoView {
         </p>
     }
 }
-

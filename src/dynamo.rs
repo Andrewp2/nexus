@@ -23,4 +23,3 @@ pub mod constants {
         pub const EMAIL_VERIFICATION_UUID: &str = "email_verification_uuid-index";
     }
 }
-

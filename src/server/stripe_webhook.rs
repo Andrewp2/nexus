@@ -245,4 +245,3 @@ pub async fn stripe_webhook(
     }
     Ok(())
 }
-

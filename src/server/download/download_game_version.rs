@@ -141,4 +141,3 @@ pub async fn find_latest_version(
         Err("No valid versions found".into())
     }
 }
-

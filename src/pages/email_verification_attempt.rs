@@ -33,4 +33,3 @@ pub fn EmailVerificationAttempt() -> impl IntoView {
 
     view! { <div>{f}</div> }
 }
-

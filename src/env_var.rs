@@ -22,4 +22,3 @@ pub fn get_stripe_webhook_signature() -> String {
         }
     }
 }
-

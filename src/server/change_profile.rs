@@ -201,4 +201,3 @@ pub async fn change_password(new_password: String) -> Result<(), ServerFnError<N
     let new_password_av = AttributeValue::S(new_password);
     change_value(table_attributes::PASSWORD, new_password_av).await
 }
-

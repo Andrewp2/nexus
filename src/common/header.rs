@@ -21,4 +21,3 @@ pub fn Header(logged_in: ReadSignal<bool>) -> impl IntoView {
         </header>
     }
 }
-

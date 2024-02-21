@@ -4,4 +4,3 @@ use leptos::{component, view, IntoView};
 pub fn Credits() -> impl IntoView {
     view! { <p>Game is made entirely by Andrew Peterson.</p> }
 }
-

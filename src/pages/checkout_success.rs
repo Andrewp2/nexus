@@ -4,4 +4,3 @@ use leptos::{component, view, IntoView};
 pub fn CheckoutSuccess() -> impl IntoView {
     view! { <div>"checkout succeed page"</div> }
 }
-

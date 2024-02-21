@@ -5,4 +5,3 @@ use leptos_router::A;
 pub fn Download(logged_in: ReadSignal<bool>, set_logged_in: WriteSignal<bool>) -> impl IntoView {
     view! { <h1>"Download"</h1> }
 }
-

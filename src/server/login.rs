@@ -152,4 +152,3 @@ fn get_hash_and_verified_status_from_query(
         })?;
     Ok((hash_string, *email_verified))
 }
-

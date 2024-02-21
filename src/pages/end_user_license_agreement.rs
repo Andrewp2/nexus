@@ -21,4 +21,3 @@ pub fn EndUserLicenseAgreement() -> impl IntoView {
         <p>You are allowed to stream this game</p>
     }
 }
-

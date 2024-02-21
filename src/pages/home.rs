@@ -57,4 +57,3 @@ async fn run(_: ()) -> Result<(), JsValue> {
 
     Ok(())
 }
-

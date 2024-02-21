@@ -17,4 +17,3 @@ pub struct AppState {
     pub s3_client: Arc<S3Client>,
     pub routes: Vec<RouteListing>,
 }
-

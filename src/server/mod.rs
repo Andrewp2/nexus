@@ -18,4 +18,3 @@ pub mod utilities;
 pub mod verify_email;
 
 pub mod public;
-
