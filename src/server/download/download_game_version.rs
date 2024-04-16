@@ -58,7 +58,7 @@ pub async fn download_game_version(
         .limit(1)
         .table_name(get_table_name())
         .key_condition_expression("#k = :v")
-        .expression_attribute_names("k".to_string(), table_attributes::EMAIL)
+        .expression_attribute_names("#k".to_string(), table_attributes::EMAIL)
         .expression_attribute_values(":v".to_string(), AttributeValue::S(email))
         .send()
         .await
@@ -141,3 +141,4 @@ pub async fn find_latest_version(
         Err("No valid versions found".into())
     }
 }
+

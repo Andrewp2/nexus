@@ -23,7 +23,7 @@ async fn set_expiry_for_email(
         .table_name(get_table_name())
         .key(table_attributes::EMAIL, AttributeValue::S(email))
         .update_expression("SET #e = :r")
-        .expression_attribute_names("e".to_string(), table_attributes::SESSION_EXPIRY)
+        .expression_attribute_names("#e".to_string(), table_attributes::SESSION_EXPIRY)
         .expression_attribute_values(":r", AttributeValue::N("0".to_string()))
         .send()
         .await
@@ -34,3 +34,4 @@ async fn set_expiry_for_email(
         Err(e) => Err(handle_dynamo_generic_error(e)),
     }
 }
+

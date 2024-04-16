@@ -1,4 +1,7 @@
-use leptos::{component, create_server_action, view, IntoView, ReadSignal, WriteSignal};
+use leptos::{
+    component, create_effect, create_server_action, view, IntoView, ReadSignal, SignalSet,
+    SignalWith, WriteSignal,
+};
 use leptos_router::ActionForm;
 
 use crate::server::public::{Login, Signup};
@@ -9,6 +12,18 @@ pub fn LoginAndSignup(
     set_logged_in: WriteSignal<bool>,
 ) -> impl IntoView {
     let login = create_server_action::<Login>();
+    let login_value = login.value();
+    let login_has_error = move || login_value.with(|val| matches!(val, Some(Err(_))));
+
+    create_effect(move |_| match login_value() {
+        Some(s) => match s {
+            Ok(_) => set_logged_in.set(true),
+            Err(_) => {}
+        },
+
+        None => {}
+    });
+    // TODO: Figure out how to set signal when login has successfully occurred
     let sign_up = create_server_action::<Signup>();
     view! {
         <div id="log-in-and-register-form">
@@ -16,7 +31,7 @@ pub fn LoginAndSignup(
                 <h1>"Log in"</h1>
                 <label>
                     "Email:" <br/>
-                    <input type="email" placeholder="Email" maxlength="32" name="email" required/>
+                    <input type="email" placeholder="Email" maxlength="64" name="email" required/>
                 </label>
                 <br/>
                 <label>
@@ -35,13 +50,7 @@ pub fn LoginAndSignup(
                     "Remember me?"
                 </label>
                 <br/>
-                <label>
-                    <input type="submit" class="log-in-button"/>
-                    "Log In"
-                </label>
-            // <button type="submit" class="log-in-button">
-            // "Log In"
-            // </button>
+                <input type="submit" class="log-in-button"/>
             </ActionForm>
             <ActionForm action=sign_up class="sign-up-form">
                 <h1>"Sign Up"</h1>
@@ -91,3 +100,4 @@ pub fn LoginAndSignup(
         </div>
     }
 }
+

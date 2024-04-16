@@ -20,7 +20,7 @@ use crate::{
         index,
         table_attributes::{self, EMAIL, SESSION_EXPIRY, SESSION_ID},
     },
-    env_var::get_table_name,
+    env_var::{get_host_prefix, get_table_name},
     errors::NexusError,
 };
 
@@ -42,9 +42,10 @@ pub fn stripe_client() -> Result<Arc<StripeClient>, ServerFnError<NexusError>> {
 pub fn hash_password(password: &str) -> Result<String, Error> {
     let salt = SaltString::generate(&mut OsRng);
     let argon2 = Argon2::default();
-    Ok(argon2
+    let string = argon2
         .hash_password(password.as_bytes(), &salt)?
-        .to_string())
+        .to_string();
+    Ok(string)
 }
 
 pub fn verify_password(password: &str, database_hash: &str) -> bool {
@@ -69,7 +70,7 @@ pub async fn get_session_cookie() -> Result<String, ServerFnError<NexusError>> {
         NexusError::Unhandled
     })?;
     let session_id = cookie_jar
-        .get(format!("__Host-{}", SESSION_ID).as_str())
+        .get(format!("{}{}", get_host_prefix(), SESSION_ID).as_str())
         .ok_or_else(|| {
             log::error!("Couldn't get session_id from cookie_jar");
             ServerFnError::from(NexusError::Unhandled)
@@ -77,7 +78,7 @@ pub async fn get_session_cookie() -> Result<String, ServerFnError<NexusError>> {
     let f = session_id
         .value()
         .to_string()
-        .strip_prefix("__Host-")
+        .strip_prefix(get_host_prefix())
         .ok_or_else(|| {
             log::error!("Couldn't remove __Host- prefix from cookie");
             ServerFnError::from(NexusError::Unhandled)
@@ -97,7 +98,7 @@ pub async fn check_if_session_is_valid(
         .limit(1)
         .index_name(crate::dynamo::constants::index::SESSION_ID)
         .key_condition_expression("#k = :v")
-        .expression_attribute_names("k", SESSION_ID)
+        .expression_attribute_names("#k", SESSION_ID)
         .expression_attribute_names(":v", session_id_cookie.clone())
         .projection_expression([SESSION_ID, SESSION_EXPIRY, EMAIL].join(", "))
         .send()
@@ -253,7 +254,7 @@ pub async fn get_email_from_session_id(
         .table_name(get_table_name())
         .index_name(index::SESSION_ID)
         .key_condition_expression("#k = :v")
-        .expression_attribute_names("k".to_string(), table_attributes::SESSION_ID)
+        .expression_attribute_names("#k".to_string(), table_attributes::SESSION_ID)
         .expression_attribute_values(":v".to_string(), AttributeValue::S(session_id_cookie))
         .send()
         .await
@@ -271,3 +272,4 @@ pub fn handle_dynamo_generic_error(e: aws_sdk_dynamodb::Error) -> ServerFnError<
     log::error!("{:?}", e);
     ServerFnError::from(NexusError::GenericDynamoServiceError)
 }
+

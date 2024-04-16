@@ -10,9 +10,17 @@ use crate::errors::NexusError;
 pub async fn login(
     email: String,
     password: String,
-    remember: bool,
+    #[server(default)] remember: String,
 ) -> Result<(), ServerFnError<NexusError>> {
     use super::login::login;
+    let remember = match remember.as_str() {
+        "true" => true,
+        "on" => true,
+        "false" => false,
+        "off" => false,
+        "" => false,
+        _ => false,
+    };
     login(email, password, remember).await
 }
 
@@ -67,3 +75,4 @@ pub async fn create_checkout() -> Result<String, ServerFnError<NexusError>> {
     use super::create_checkout::create_checkout;
     create_checkout().await
 }
+

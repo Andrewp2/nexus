@@ -12,7 +12,7 @@ use crate::{
 };
 use leptos::{component, create_signal, view, Errors, IntoView};
 use leptos_meta::{provide_meta_context, Stylesheet, Title};
-use leptos_router::{Route, Router, Routes};
+use leptos_router::{ProtectedRoute, Route, Router, Routes};
 
 #[component]
 pub fn App() -> impl IntoView {
@@ -20,6 +20,7 @@ pub fn App() -> impl IntoView {
     provide_meta_context();
 
     let (logged_in, set_logged_in) = create_signal(false);
+    let (bought_game, set_bought_game) = create_signal(false);
 
     view! {
         <Stylesheet id="leptos" href="/pkg/nexus.css"/>
@@ -42,9 +43,9 @@ pub fn App() -> impl IntoView {
             outside_errors.insert_with_default_key(AppError::NotFound);
             view! { <ErrorTemplate outside_errors/> }.into_view()
         }>
-            <body>
-                <Header logged_in=logged_in/>
-                <main>
+            <body class="min-h-screen font-['Roboto_Slab'] flex flex-col bg-primary-color text-white m-0 p-0">
+                <Header logged_in=logged_in set_logged_in=set_logged_in/>
+                <main class="flex-1 p-10 bg-[#background-color] backdrop-blur-md">
                     <Routes>
                         <Route path="" view=Home/>
                         <Route path="about" view=About/>
@@ -64,21 +65,33 @@ pub fn App() -> impl IntoView {
                             }
                         />
 
-                        <Route
+                        <ProtectedRoute
                             path="download"
                             view=move || {
                                 view! {
                                     <Download logged_in=logged_in set_logged_in=set_logged_in/>
                                 }
                             }
+
+                            condition=|| { true }
+
+                            redirect_path=""
                         />
 
+                        // <Route
+                        // path="download"
+                        // view=move || {
+                        // view! {
+                        // <Download logged_in=logged_in set_logged_in=set_logged_in/>
+                        // }
+                        // }
+                        // />
+
                         <Route path="email_verification" view=EmailVerification/>
-                        <Route path="email_verification/:email_uuid" view=EmailVerificationAttempt/>
-                        <Route path="checkout" view=Checkout>
-                            <Route path="cancel" view=CheckoutCancel/>
-                            <Route path="success" view=CheckoutSuccess/>
-                        </Route>
+                        <Route path="email_verification/:uuid" view=EmailVerificationAttempt/>
+                        <Route path="checkout" view=Checkout/>
+                        <Route path="checkout/cancel" view=CheckoutCancel/>
+                        <Route path="checkout/success" view=CheckoutSuccess/>
                     </Routes>
                 </main>
                 <Footer/>
@@ -86,3 +99,4 @@ pub fn App() -> impl IntoView {
         </Router>
     }
 }
+

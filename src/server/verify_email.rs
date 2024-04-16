@@ -23,7 +23,7 @@ Somebody just used this email address to sign up at {}.
         
 If this was you, verify your email by clicking on the link below:
         
-https://{}/email-verification/?uuid={}
+https://{}/email_verification/{}
         
 If this was not you, you may ignore this email.",
         SITE_DOMAIN,
@@ -71,6 +71,7 @@ If this was not you, you may ignore this email.",
 /// Verifies a given email_uuid
 pub async fn verify_email(email_uuid: String) -> Result<(), ServerFnError<NexusError>> {
     let client = dynamo_client()?;
+
     // first we have to query to find the email address associated with this verification attempt.
     let db_query_result = client
         .query()
@@ -78,7 +79,7 @@ pub async fn verify_email(email_uuid: String) -> Result<(), ServerFnError<NexusE
         .table_name(get_table_name())
         .index_name(index::EMAIL_VERIFICATION_UUID)
         .key_condition_expression("#k = :v")
-        .expression_attribute_names("k".to_string(), table_attributes::EMAIL_VERIFICATION_UUID)
+        .expression_attribute_names("#k".to_string(), table_attributes::EMAIL_VERIFICATION_UUID)
         .expression_attribute_values(":v".to_string(), AttributeValue::S(email_uuid))
         .send()
         .await
@@ -98,7 +99,7 @@ pub async fn verify_email(email_uuid: String) -> Result<(), ServerFnError<NexusE
             AttributeValue::S(email.to_string()),
         )
         .update_expression("SET #e = :r")
-        .expression_attribute_names("e".to_string(), table_attributes::EMAIL_VERIFIED)
+        .expression_attribute_names("#e".to_string(), table_attributes::EMAIL_VERIFIED)
         .expression_attribute_values(":r", AttributeValue::Bool(true))
         .send()
         .await
@@ -109,3 +110,4 @@ pub async fn verify_email(email_uuid: String) -> Result<(), ServerFnError<NexusE
         Err(e) => Err(handle_dynamo_generic_error(e)),
     }
 }
+

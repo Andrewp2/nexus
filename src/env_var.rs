@@ -14,6 +14,14 @@ pub fn get_table_name() -> &'static str {
     }
 }
 
+pub fn get_host_prefix() -> &'static str {
+    if cfg!(debug_assertions) {
+        ""
+    } else {
+        "__Host-"
+    }
+}
+
 pub fn get_stripe_webhook_signature() -> String {
     match env::var("STRIPE_WEBHOOK_SECRET") {
         Ok(s) => s,
@@ -22,3 +30,4 @@ pub fn get_stripe_webhook_signature() -> String {
         }
     }
 }
+

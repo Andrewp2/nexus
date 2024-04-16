@@ -22,7 +22,7 @@ pub fn Checkout() -> impl IntoView {
         std::env!("STRIPE_PUBLIC_KEY")
     );
     view! {
-        <h1>"Checkout Page"</h1>
+        <h1>"Checkout"</h1>
         <script inner_html=script></script>
         <Suspense fallback=move || {
             view! { <p>"Loading..."</p> }
@@ -51,3 +51,4 @@ pub fn Checkout() -> impl IntoView {
         </Suspense>
     }
 }
+

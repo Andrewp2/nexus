@@ -5,7 +5,7 @@ use crate::{
     dynamo::constants::table_attributes::{
         EMAIL, EMAIL_VERIFIED, PASSWORD, SESSION_EXPIRY, SESSION_ID,
     },
-    env_var::get_table_name,
+    env_var::{get_host_prefix, get_table_name},
     errors::NexusError,
 };
 use aws_sdk_dynamodb::{
@@ -49,6 +49,7 @@ pub async fn login(
     }?;
 
     if !verified {
+        log::error!("Not email verified");
         return Err(ServerFnError::from(NexusError::AccountNotVerified));
     }
 
@@ -74,14 +75,14 @@ pub async fn login(
                 .send()
                 .await
                 .map_err(|e| aws_sdk_dynamodb::Error::from(e));
+
             match update_session_expiry_db_result {
                 Ok(_) => {
                     let response = expect_context::<ResponseOptions>();
-                    // INFO: time expiration format seems correct since the original time is in UTC,
-                    // and GMT == UTC for HTTP purposes
-                    // double check this in the future
+                    // Note that setting this cookie won't work in localhost (not HTTPS)
                     let cookie = format!(
-                        "__Host-{}={};Expires={};Secure;SameSite=Strict;HttpOnly; Path=/",
+                        "{}{}={};Expires={};Secure;SameSite=Strict;HttpOnly; Path=/",
+                        get_host_prefix(),
                         SESSION_ID,
                         session_uuid.clone(),
                         future_time.format("%a, %d %b %Y %H:%M:%S GMT").to_string()
@@ -93,21 +94,21 @@ pub async fn login(
                     log::error!("Unable to create cookie {}", cookie);
                     Err(ServerFnError::from(NexusError::Unhandled))
                 }
-                Err(e) => {
-                    log::error!("{:?}", e);
-                    Err(ServerFnError::from(match e {
-                        aws_sdk_dynamodb::Error::ConditionalCheckFailedException(_) => {
-                            NexusError::EmailNotFoundLogin
-                        }
-                        _ => NexusError::GenericDynamoServiceError,
-                    }))
-                }
+                Err(e) => Err(ServerFnError::from(match e {
+                    aws_sdk_dynamodb::Error::ConditionalCheckFailedException(_) => {
+                        NexusError::EmailNotFoundLogin
+                    }
+                    _ => NexusError::GenericDynamoServiceError,
+                })),
             }
         }
         // https://security.stackexchange.com/questions/227524/password-reset-giving-clues-of-possible-valid-email-addresses/227566#227566
         // TL;DR it is fine from a UX standpoint to say specifically they have the incorrect password, yes this does leak the fact
         // that a specific email address is logged in
-        false => Err(ServerFnError::from(NexusError::IncorrectPassword)),
+        false => {
+            log::error!("Tried to login with incorrect password");
+            Err(ServerFnError::from(NexusError::IncorrectPassword))
+        }
     }
 }
 
@@ -117,28 +118,21 @@ fn get_hash_and_verified_status_from_query(
     let item = val.items().first().ok_or(ServerFnError::from(
         NexusError::CouldNotFindRowWithThatEmail,
     ))?;
-    let blob = item
+    let hash_string = item
         .get(PASSWORD)
         .ok_or_else(|| {
             log::error!("Was not able to find the password, despite the filter expression");
             ServerFnError::from(NexusError::GenericDynamoServiceError)
         })?
-        .as_b()
+        .as_s()
         .map_err(|e| {
             log::error!(
                 "Was not able to get the inner blob from the password {:?}",
                 e
             );
             ServerFnError::from(NexusError::Unhandled)
-        })?;
-    let hash_string = String::from_utf8(blob.clone().into_inner()).map_err(|e| {
-        log::error!(
-            "Was not able to get a utf8 string from the blob {:?}, {:?}",
-            blob,
-            e
-        );
-        ServerFnError::from(NexusError::Unhandled)
-    })?;
+        })?
+        .to_owned();
     let email_verified = item
         .get(EMAIL_VERIFIED)
         .ok_or_else(|| {
@@ -152,3 +146,4 @@ fn get_hash_and_verified_status_from_query(
         })?;
     Ok((hash_string, *email_verified))
 }
+

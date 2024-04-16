@@ -32,7 +32,7 @@ pub async fn change_email_request(new_email: String) -> Result<(), ServerFnError
         .limit(1)
         .index_name(crate::dynamo::constants::index::SESSION_ID)
         .key_condition_expression("#k = :v")
-        .expression_attribute_names("k", SESSION_ID)
+        .expression_attribute_names("#k", SESSION_ID)
         .expression_attribute_names(":v", session_id_cookie.clone())
         .send()
         .await
@@ -121,7 +121,7 @@ pub async fn change_email_request(new_email: String) -> Result<(), ServerFnError
 Did you just request that your email address be changed?
 If so, click on the below link to accept the email change:
 
-https://{}/email-verification/{}
+https://{}/email_verification/{}
 
 If you did not request an email address change, please change your password.",
         SITE_FULL_DOMAIN,
@@ -174,7 +174,7 @@ async fn change_value(name: &str, value: AttributeValue) -> Result<(), ServerFnE
         .table_name(get_table_name())
         .key(table_attributes::EMAIL, AttributeValue::S(email))
         .update_expression("SET #e = :r")
-        .expression_attribute_names("e".to_string(), name)
+        .expression_attribute_names("#e".to_string(), name)
         .expression_attribute_values(":r", value)
         .send()
         .await
@@ -197,7 +197,9 @@ pub async fn change_display_name(
     change_value(table_attributes::DISPLAY_NAME, display_name_av).await
 }
 
+// TODO: Fix
 pub async fn change_password(new_password: String) -> Result<(), ServerFnError<NexusError>> {
     let new_password_av = AttributeValue::S(new_password);
     change_value(table_attributes::PASSWORD, new_password_av).await
 }
+

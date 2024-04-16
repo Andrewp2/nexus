@@ -9,14 +9,8 @@ pub struct EmailVerificationParams {
 #[component]
 pub fn EmailVerificationAttempt() -> impl IntoView {
     let params = use_params::<EmailVerificationParams>();
-    let uuid = move || {
-        params.with(|params| {
-            params
-                .as_ref()
-                .map(|params| params.uuid.clone())
-                .unwrap_or_default()
-        })
-    };
+    let uuid =
+        move || params.with(|params| params.as_ref().map(|params| params.uuid.clone()).unwrap());
 
     let x = create_resource(
         || (),
@@ -24,12 +18,13 @@ pub fn EmailVerificationAttempt() -> impl IntoView {
     );
 
     let f = move || match x.get() {
-        None => view! { <div>hi there</div> },
+        None => view! { <div>"hi there"</div> },
         Some(s) => match s {
-            Ok(_) => view! { <div>Verification was successful</div> },
-            Err(_) => view! { <div>error oh no</div> },
+            Ok(_) => view! { <div>"Verification was successful"</div> },
+            Err(_) => view! { <div>"error oh no"</div> },
         },
     };
 
     view! { <div>{f}</div> }
 }
+

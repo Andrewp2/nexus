@@ -18,6 +18,8 @@ pub fn Home() -> impl IntoView {
                     game_action.dispatch(());
                     set_invisible(true);
                 }
+
+                class="transition-colors duration-300 ease-in-out text-[#color] py-1.5 px-1.5 bg-[#primary-color] rounded-md"
             >
 
                 "Run Game"
@@ -57,3 +59,4 @@ async fn run(_: ()) -> Result<(), JsValue> {
 
     Ok(())
 }
+

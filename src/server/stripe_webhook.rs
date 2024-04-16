@@ -191,7 +191,6 @@ pub async fn stripe_webhook(
     let _idempotency_key = event.request.and_then(|req| req.idempotency_key);
     match event.data.object {
         EventObject::CheckoutSession(checkout) => {
-            //process_checkout(&db, stripe, checkout, event_type).await?;
             process_checkout(&dynamo_client, &stripe_client, checkout, event_type).await?;
         }
         //TODO: HANDLE DISPUTE
@@ -245,3 +244,4 @@ pub async fn stripe_webhook(
     }
     Ok(())
 }
+

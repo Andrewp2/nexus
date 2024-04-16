@@ -11,6 +11,8 @@ use axum::{
 use headers::Authorization;
 use http::{header, HeaderName, Response as HttpResponse, StatusCode};
 
+use crate::env_var::get_host_prefix;
+
 pub const GAME_BUCKET_NAME: &str = "games";
 pub const LAUNCHER_BUCKET_NAME: &str = "launchers";
 
@@ -24,7 +26,8 @@ impl<S: Sync> FromRequest<S, Body> for SessionId {
 
     async fn from_request(req: Request<Body>, _state: &S) -> Result<Self, Self::Rejection> {
         // Define the custom header name
-        let header_name = HeaderName::from_lowercase(b"__Host-session-id").unwrap();
+        let header = format!("{}session-id", get_host_prefix());
+        let header_name = HeaderName::from_lowercase(header.as_bytes()).unwrap();
 
         // Attempt to extract the session-id header
         match req.headers().get(&header_name) {
@@ -72,7 +75,7 @@ pub async fn download_file_from_s3(
 //         .table_name(get_table_name())
 //         .index_name(index::SESSION_ID)
 //         .key_condition_expression("#k = :v")
-//         .expression_attribute_names("k".to_string(), table_attributes::SESSION_ID)
+//         .expression_attribute_names("#k".to_string(), table_attributes::SESSION_ID)
 //         .expression_attribute_values(":v".to_string(), AttributeValue::S(session_id))
 //         .send()
 //         .await
@@ -85,3 +88,4 @@ pub async fn download_file_from_s3(
 
 //     Ok(email)
 // }
+
