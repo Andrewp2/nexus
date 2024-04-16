@@ -1,4 +1,6 @@
-
+[workspace]
+resolver = "2"
+members = ["app", "frontend", "server"]
 
 [package]
 name = "nexus"
@@ -8,7 +10,7 @@ edition = "2021"
 [lib]
 crate-type = ["cdylib", "rlib"]
 
-[dependencies]
+[workspace.dependencies]
 axum = { version = "0.7.4", optional = true, features = ["macros"] }
 console_error_panic_hook = "0.1"
 console_log = "1"
@@ -122,6 +124,15 @@ opt-level = 2
 [profile.dev]
 debug = 0
 
+
+[[workspace.metadata.leptos]]
+name = "nexus"
+# the package in the workspace that contains the server binary (binary crate)
+bin-package = "server"
+
+# the package in the workspace that contains the frontend wasm binary (library crate)
+lib-package = "frontend"
+
 # cargo-lambda allows certain settings to be defined here,
 # see https://www.cargo-lambda.info/commands/deploy.html#deploy-configuration-in-cargo-s-metadata
 [package.metadata.lambda.deploy]
@@ -143,7 +154,7 @@ site-pkg-dir = "pkg"
 # Optional, Activates the tailwind build
 tailwind-input-file = "style/tailwind.css"
 
-style-file = "style/main.scss"
+style-file = "style/main.css"
 
 # Assets source dir. All files found here will be copied and synchronized to site-root.
 # The assets-dir cannot have a sub directory with the same name/path as site-pkg-dir.
