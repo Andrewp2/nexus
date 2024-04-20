@@ -2,56 +2,48 @@
 resolver = "2"
 members = ["app", "frontend", "server"]
 
-[package]
-name = "nexus"
-version = "0.1.0"
-edition = "2021"
-
-[lib]
-crate-type = ["cdylib", "rlib"]
-
 [workspace.dependencies]
-axum = { version = "0.7.4", optional = true, features = ["macros"] }
+axum = { version = "0.7.4", features = ["macros"] }
 console_error_panic_hook = "0.1"
 console_log = "1"
 cfg-if = "1"
 leptos = { version = "0.6.6", features = ["nightly"] }
-leptos_axum = { version = "0.6.6", optional = true }
+leptos_axum = { version = "0.6.6" }
 leptos_meta = { version = "0.6.6", features = ["nightly"] }
 leptos_router = { version = "0.6.6", features = ["nightly"] }
 log = "0.4"
 simple_logger = "4"
-tokio = { version = "1.25.0", optional = true }
-tower = { version = "0.4.13", optional = true }
-tower-http = { version = "0.5", features = ["fs"], optional = true }
+tokio = { version = "1.25.0" }
+tower = { version = "0.4.13" }
+tower-http = { version = "0.5", features = ["fs"] }
 wasm-bindgen = "=0.2.92"
 thiserror = "1.0.38"
-tracing = { version = "0.1.37", optional = true }
+tracing = { version = "0.1.37" }
 http = "1.0"
-axum-aws-lambda = { version = "0.6.0", optional = true }
-lambda_http = { version = "0.9", optional = true }
+axum-aws-lambda = { version = "0.6.0" }
+lambda_http = { version = "0.9" }
 serde = { version = "1", features = ["derive"] }
-async-trait = { version = "0.1.74", optional = true }
-aws-config = { version = "1.0.1", optional = true }
-aws-sdk-dynamodb = { version = "1.2.0", optional = true }
-aws-sdk-ses = { version = "1.3.0", optional = true }
-aws-sdk-s3 = { version = "1.15", optional = true }
+async-trait = { version = "0.1.74" }
+aws-config = { version = "1.0.1" }
+aws-sdk-dynamodb = { version = "1.2.0" }
+aws-sdk-ses = { version = "1.3.0" }
+aws-sdk-s3 = { version = "1.15" }
 chrono = "0.4.31"
-uuid = { version = "1.6.1", features = ["v4"], optional = true }
-argon2 = { version = "0.5.2", optional = true, features = [] }
-rand = { version = "0.8.5", optional = true }
-rustrict = { version = "0.7.16", optional = true }
+uuid = { version = "1.6.1", features = ["v4"] }
+argon2 = { version = "0.5.2", features = [] }
+rand = { version = "0.8.5" }
+rustrict = { version = "0.7.16" }
 serde_json = "1.0.108"
-axum-extra = { version = "0.9.2", optional = true, features = [
+axum-extra = { version = "0.9.2", features = [
     "cookie",
     "typed-header",
 ] }
-email_address = { version = "0.2.4", optional = true }
+email_address = { version = "0.2.4" }
 gloo-net = { version = "0.5", features = ["http"] }
 web-sys = { version = "0.3.66", features = ["Window"] }
 js-sys = { version = "0.3.66" }
 wasm-bindgen-futures = { version = "*" }
-async-stripe = { version = "0.31", optional = true, default-features = false, features = [
+async-stripe = { version = "0.31", default-features = false, features = [
     "runtime-tokio-hyper",
     "checkout",
     "webhook-endpoints",
@@ -60,41 +52,8 @@ async-stripe = { version = "0.31", optional = true, default-features = false, fe
     "stream",
     "connect",
 ] }
-headers = { version = "0.4.0", optional = true }
-semver = { version = "1.0", optional = true }
-
-[features]
-hydrate = ["leptos/hydrate", "leptos_meta/hydrate", "leptos_router/hydrate"]
-ssr = [
-    "dep:axum",
-    "dep:tokio",
-    "dep:tower",
-    "dep:tower-http",
-    "dep:leptos_axum",
-    "dep:async-trait",
-    "leptos/ssr",
-    "leptos_meta/ssr",
-    "leptos_router/ssr",
-    "dep:tracing",
-    "dep:lambda_http",
-    "dep:axum-aws-lambda",
-    "dep:aws-config",
-    "dep:aws-sdk-dynamodb",
-    "dep:aws-sdk-ses",
-    "dep:aws-sdk-s3",
-    "dep:uuid",
-    "dep:argon2",
-    "dep:rand",
-    "dep:rustrict",
-    "dep:axum-extra",
-    "dep:email_address",
-    "dep:async-stripe",
-    "dep:headers",
-    "dep:semver",
-]
-
-[target.'cfg(all(target_os = "linux", any(target_env = "musl", target_arch = "arm", target_arch = "aarch64")))'.dependencies]
-openssl = { version = "0.10", features = ["vendored"] }
+headers = { version = "0.4.0" }
+semver = { version = "1.0" }
 
 # Defines a size-optimized profile for the WASM bundle in release mode
 [profile.wasm-release]
@@ -133,77 +92,72 @@ bin-package = "server"
 # the package in the workspace that contains the frontend wasm binary (library crate)
 lib-package = "frontend"
 
-# cargo-lambda allows certain settings to be defined here,
-# see https://www.cargo-lambda.info/commands/deploy.html#deploy-configuration-in-cargo-s-metadata
-[package.metadata.lambda.deploy]
-# Leptos generally doesn't take more than a few hundred milliseconds even with a cold start
-timeout = 3
-env = { LEPTOS_ENV = "PROD", LEPTOS_OUTPUT_NAME = "aws-lambda", LEPTOS_SITE_ROOT = "target/site", LEPTOS_SITE_PKG_DIR = "pkg" }
 
-[package.metadata.leptos]
-# The name used by wasm-bindgen/cargo-leptos for the JS/WASM bundle. Defaults to the crate name
-output-name = "nexus"
-
-# The site root folder is where cargo-leptos generate all output. WARNING: all content of this folder will be erased on a rebuild. Use it in your server setup.
-site-root = "target/site"
-
-# The site-root relative folder where all compiled output (JS, WASM and CSS) is written
-# Defaults to pkg
-site-pkg-dir = "pkg"
-
-# Optional, Activates the tailwind build
-tailwind-input-file = "style/tailwind.css"
-
-style-file = "style/main.css"
-
-# Assets source dir. All files found here will be copied and synchronized to site-root.
-# The assets-dir cannot have a sub directory with the same name/path as site-pkg-dir.
-#
-# Optional. Env: LEPTOS_ASSETS_DIR.
-assets-dir = "public"
-
-# The IP and port (ex: 127.0.0.1:3000) where the server serves the content. Use it in your server setup.
-site-addr = "127.0.0.1:3000"
-
-# The port to use for automatic reload monitoring
-reload-port = 3001
-
-# [Optional] Command to use when running end2end tests. It will run in the end2end dir.
-#   [Windows] for non-WSL use "npx.cmd playwright test"
-#   This binary name can be checked in Powershell with Get-Command npx
-end2end-cmd = "npx playwright test"
-end2end-dir = "end2end"
-
-#  The browserlist query used for optimizing the CSS.
-browserquery = "defaults"
-
-# Set by cargo-leptos watch when building with that tool. Controls whether autoreload JS will be included in the head
-watch = false
-
-# The environment Leptos will run in, usually either "DEV" or "PROD"
-env = "DEV"
-
-# The features to use when compiling the bin target
-#
-# Optional. Can be over-ridden with the command line parameter --bin-features
-bin-features = ["ssr"]
-
-# If the --no-default-features flag should be used when compiling the bin target
-#
-# Optional. Defaults to false.
-bin-default-features = false
-
-# The features to use when compiling the lib target
-#
-# Optional. Can be over-ridden with the command line parameter --lib-features
-lib-features = ["hydrate"]
-
-# If the --no-default-features flag should be used when compiling the lib target
-#
-# Optional. Defaults to false.
-lib-default-features = false
-
-# The profile to use for the lib target when compiling for release
-#
-# Optional. Defaults to "release".
-lib-profile-release = "wasm-release"
+# [package.metadata.leptos]
+# # The name used by wasm-bindgen/cargo-leptos for the JS/WASM bundle. Defaults to the crate name
+# output-name = "nexus"
+# 
+# # The site root folder is where cargo-leptos generate all output. WARNING: all content of this folder will be erased on a rebuild. Use it in your server setup.
+# site-root = "target/site"
+# 
+# # The site-root relative folder where all compiled output (JS, WASM and CSS) is written
+# # Defaults to pkg
+# site-pkg-dir = "pkg"
+# 
+# # Optional, Activates the tailwind build
+# tailwind-input-file = "style/tailwind.css"
+# 
+# style-file = "style/main.css"
+# 
+# # Assets source dir. All files found here will be copied and synchronized to site-root.
+# # The assets-dir cannot have a sub directory with the same name/path as site-pkg-dir.
+# #
+# # Optional. Env: LEPTOS_ASSETS_DIR.
+# assets-dir = "public"
+# 
+# # The IP and port (ex: 127.0.0.1:3000) where the server serves the content. Use it in your server setup.
+# site-addr = "127.0.0.1:3000"
+# 
+# # The port to use for automatic reload monitoring
+# reload-port = 3001
+# 
+# # [Optional] Command to use when running end2end tests. It will run in the end2end dir.
+# #   [Windows] for non-WSL use "npx.cmd playwright test"
+# #   This binary name can be checked in Powershell with Get-Command npx
+# end2end-cmd = "npx playwright test"
+# end2end-dir = "end2end"
+# 
+# #  The browserlist query used for optimizing the CSS.
+# browserquery = "defaults"
+# 
+# # Set by cargo-leptos watch when building with that tool. Controls whether autoreload JS will be included in the head
+# watch = false
+# 
+# # The environment Leptos will run in, usually either "DEV" or "PROD"
+# env = "DEV"
+# 
+# # The features to use when compiling the bin target
+# #
+# # Optional. Can be over-ridden with the command line parameter --bin-features
+# bin-features = ["ssr"]
+# 
+# # If the --no-default-features flag should be used when compiling the bin target
+# #
+# # Optional. Defaults to false.
+# bin-default-features = false
+# 
+# # The features to use when compiling the lib target
+# #
+# # Optional. Can be over-ridden with the command line parameter --lib-features
+# lib-features = ["hydrate"]
+# 
+# # If the --no-default-features flag should be used when compiling the lib target
+# #
+# # Optional. Defaults to false.
+# lib-default-features = false
+# 
+# # The profile to use for the lib target when compiling for release
+# #
+# # Optional. Defaults to "release".
+# lib-profile-release = "wasm-release"
+# 

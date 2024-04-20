@@ -19,3 +19,40 @@ thiserror.workspace = true
 default = []
 hydrate = ["leptos/hydrate", "leptos_meta/hydrate", "leptos_router/hydrate"]
 ssr = ["leptos/ssr", "leptos_meta/ssr", "leptos_router/ssr", "dep:leptos_axum"]
+
+# [features]
+# hydrate = ["leptos/hydrate", "leptos_meta/hydrate", "leptos_router/hydrate"]
+# ssr = [
+#     "dep:axum",
+#     "dep:tokio",
+#     "dep:tower",
+#     "dep:tower-http",
+#     "dep:leptos_axum",
+#     "dep:async-trait",
+#     "leptos/ssr",
+#     "leptos_meta/ssr",
+#     "leptos_router/ssr",
+#     "dep:tracing",
+#     "dep:lambda_http",
+#     "dep:axum-aws-lambda",
+#     "dep:aws-config",
+#     "dep:aws-sdk-dynamodb",
+#     "dep:aws-sdk-ses",
+#     "dep:aws-sdk-s3",
+#     "dep:uuid",
+#     "dep:argon2",
+#     "dep:rand",
+#     "dep:rustrict",
+#     "dep:axum-extra",
+#     "dep:email_address",
+#     "dep:async-stripe",
+#     "dep:headers",
+#     "dep:semver",
+# ]
+
+# cargo-lambda allows certain settings to be defined here,
+# see https://www.cargo-lambda.info/commands/deploy.html#deploy-configuration-in-cargo-s-metadata
+[package.metadata.lambda.deploy]
+# Leptos generally doesn't take more than a few hundred milliseconds even with a cold start
+timeout = 3
+env = { LEPTOS_ENV = "PROD", LEPTOS_OUTPUT_NAME = "aws-lambda", LEPTOS_SITE_ROOT = "target/site", LEPTOS_SITE_PKG_DIR = "pkg" }

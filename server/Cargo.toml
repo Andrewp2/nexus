@@ -1,0 +1,47 @@
+[package]
+name = "server"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+
+[target.'cfg(all(target_os = "linux", any(target_env = "musl", target_arch = "arm", target_arch = "aarch64")))'.dependencies]
+openssl = { version = "0.10", features = ["vendored"] }
+
+[dependencies]
+app = { path = "../app", default-features = false, features = ["ssr"] }
+leptos = { workspace = true, features = [ "ssr" ]}
+leptos_axum.workspace = true
+
+axum.workspace = true
+simple_logger.workspace = true
+tokio.workspace = true
+tower.workspace = true
+tower-http.workspace = true
+log.workspace = true
+tracing.workspace = true
+axum-aws-lambda.workspace = true
+lambda_http.workspace = true
+async-trait.workspace = true
+aws-config.workspace = true
+aws-sdk-dynamodb.workspace = true
+aws-sdk-ses.workspace = true
+aws-sdk-s3.workspace = true
+uuid.workspace = true
+argon2.workspace = true
+rand.workspace = true
+rustrict.workspace = true
+axum-extra = { workspace = true, features = ["cookie", "typed-header"]}
+email_address.workspace = true
+async-stripe = { workspace = true, default-features = false, features = [
+    "runtime-tokio-hyper",
+    "checkout",
+    "webhook-endpoints",
+    "webhook-events",
+    "uuid",
+    "stream",
+    "connect",
+]}
+headers.workspace = true
+semver.workspace = true
