@@ -8,12 +8,13 @@ use axum::{
 use http::StatusCode;
 use semver::Version;
 
-use crate::{
+use super::super::globals::{
     app_state::AppState,
     dynamo::constants::{index, table_attributes},
     env_var::get_table_name,
-    server::utilities::check_if_session_is_valid,
 };
+
+use super::super::utilities::check_if_session_is_valid;
 
 use super::download_utils::{download_file_from_s3, SessionId, GAME_BUCKET_NAME};
 
@@ -141,4 +142,3 @@ pub async fn find_latest_version(
         Err("No valid versions found".into())
     }
 }
-

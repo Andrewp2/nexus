@@ -1,16 +1,17 @@
-use super::utilities::{
-    dynamo_client, get_email_from_session_id, get_session_cookie, handle_dynamo_generic_error,
-    ses_client,
-};
-use crate::{
+use super::globals::{
+    self,
     dynamo::constants::{
         index::EMAIL_VERIFICATION_UUID,
         table_attributes::{self, EMAIL, EMAIL_VERIFIED, SESSION_EXPIRY, SESSION_ID},
     },
     env_var::get_table_name,
-    errors::NexusError,
-    site::constants::{SITE_DOMAIN, SITE_EMAIL_ADDRESS, SITE_FULL_DOMAIN},
 };
+use super::utilities::{
+    dynamo_client, get_email_from_session_id, get_session_cookie, handle_dynamo_generic_error,
+    ses_client,
+};
+use crate::errors::NexusError;
+use crate::site::constants::{SITE_DOMAIN, SITE_EMAIL_ADDRESS, SITE_FULL_DOMAIN};
 use aws_sdk_dynamodb::types::AttributeValue;
 use aws_sdk_ses::types::{Body, Content, Destination, Message};
 use chrono::Utc;
@@ -30,7 +31,7 @@ pub async fn change_email_request(new_email: String) -> Result<(), ServerFnError
         .query()
         .table_name(get_table_name())
         .limit(1)
-        .index_name(crate::dynamo::constants::index::SESSION_ID)
+        .index_name(globals::dynamo::constants::index::SESSION_ID)
         .key_condition_expression("#k = :v")
         .expression_attribute_names("#k", SESSION_ID)
         .expression_attribute_names(":v", session_id_cookie.clone())
@@ -202,4 +203,3 @@ pub async fn change_password(new_password: String) -> Result<(), ServerFnError<N
     let new_password_av = AttributeValue::S(new_password);
     change_value(table_attributes::PASSWORD, new_password_av).await
 }
-

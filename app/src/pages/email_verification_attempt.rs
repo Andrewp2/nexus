@@ -14,7 +14,7 @@ pub fn EmailVerificationAttempt() -> impl IntoView {
 
     let x = create_resource(
         || (),
-        move |_| async move { crate::server::public::verify_email(uuid()).await },
+        move |_| async move { crate::public::verify_email(uuid()).await },
     );
 
     let f = move || match x.get() {
@@ -27,4 +27,3 @@ pub fn EmailVerificationAttempt() -> impl IntoView {
 
     view! { <div>{f}</div> }
 }
-

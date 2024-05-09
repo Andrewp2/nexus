@@ -15,14 +15,16 @@ use leptos_axum::extract;
 use rand::rngs::OsRng;
 use stripe::Client as StripeClient;
 
-use crate::{
+use super::globals::{
+    self,
     dynamo::constants::{
         index,
         table_attributes::{self, EMAIL, SESSION_EXPIRY, SESSION_ID},
     },
     env_var::{get_host_prefix, get_table_name},
-    errors::NexusError,
 };
+
+use crate::errors::NexusError;
 
 pub fn dynamo_client() -> Result<Arc<DynamoClient>, ServerFnError<NexusError>> {
     use_context::<Arc<DynamoClient>>().ok_or_else(|| ServerFnError::from(NexusError::Unhandled))
@@ -96,7 +98,7 @@ pub async fn check_if_session_is_valid(
         .query()
         .table_name(get_table_name())
         .limit(1)
-        .index_name(crate::dynamo::constants::index::SESSION_ID)
+        .index_name(globals::dynamo::constants::index::SESSION_ID)
         .key_condition_expression("#k = :v")
         .expression_attribute_names("#k", SESSION_ID)
         .expression_attribute_names(":v", session_id_cookie.clone())
@@ -252,7 +254,7 @@ pub async fn get_email_from_session_id(
         .query()
         .limit(1)
         .table_name(get_table_name())
-        .index_name(index::SESSION_ID)
+        .index_name(globals::dynamo::constants::index::SESSION_ID)
         .key_condition_expression("#k = :v")
         .expression_attribute_names("#k".to_string(), table_attributes::SESSION_ID)
         .expression_attribute_values(":v".to_string(), AttributeValue::S(session_id_cookie))
@@ -272,4 +274,3 @@ pub fn handle_dynamo_generic_error(e: aws_sdk_dynamodb::Error) -> ServerFnError<
     log::error!("{:?}", e);
     ServerFnError::from(NexusError::GenericDynamoServiceError)
 }
-

@@ -11,7 +11,7 @@ use http::{HeaderName, HeaderValue, StatusCode};
 use std::fmt::Debug;
 use stripe::{CheckoutSession, Event as WebhookEvent, EventObject, EventType, Webhook};
 
-use crate::{
+use super::globals::{
     app_state::AppState,
     dynamo::constants::table_attributes,
     env_var::{get_stripe_webhook_signature, get_table_name},
@@ -26,6 +26,15 @@ impl From<(StatusCode, String)> for ServerError {
 impl IntoResponse for ServerError {
     fn into_response(self) -> Response {
         (self.0, self.1).into_response()
+    }
+}
+
+pub fn get_stripe_webhook_signature() -> String {
+    match env::var("STRIPE_WEBHOOK_SECRET") {
+        Ok(s) => s,
+        Err(_) => {
+            panic!("Cannot get STRIPE_WEBHOOK_SECRET");
+        }
     }
 }
 
@@ -244,4 +253,3 @@ pub async fn stripe_webhook(
     }
     Ok(())
 }
-

@@ -1,11 +1,13 @@
 use aws_sdk_dynamodb::{types::AttributeValue, Client};
 use leptos::ServerFnError;
 
-use crate::{dynamo::constants::table_attributes, env_var::get_table_name, errors::NexusError};
+use super::globals::{dynamo::constants::table_attributes, env_var::get_table_name};
 
 use super::utilities::{
     dynamo_client, get_email_from_session_id, get_session_cookie, handle_dynamo_generic_error,
 };
+
+use crate::errors::NexusError;
 
 pub async fn logout() -> Result<(), ServerFnError<NexusError>> {
     let client = dynamo_client()?;
@@ -34,4 +36,3 @@ async fn set_expiry_for_email(
         Err(e) => Err(handle_dynamo_generic_error(e)),
     }
 }
-

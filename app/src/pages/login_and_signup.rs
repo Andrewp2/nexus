@@ -4,7 +4,7 @@ use leptos::{
 };
 use leptos_router::ActionForm;
 
-use crate::server::public::{Login, Signup};
+use crate::public::{Login, Signup};
 
 #[component]
 pub fn LoginAndSignup(
@@ -100,4 +100,3 @@ pub fn LoginAndSignup(
         </div>
     }
 }
-

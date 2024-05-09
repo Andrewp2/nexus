@@ -1,13 +1,13 @@
-use super::utilities::{
-    dynamo_client, handle_dynamo_generic_error, session_lifespan, verify_password,
-};
-use crate::{
+use super::globals::{
     dynamo::constants::table_attributes::{
         EMAIL, EMAIL_VERIFIED, PASSWORD, SESSION_EXPIRY, SESSION_ID,
     },
     env_var::{get_host_prefix, get_table_name},
-    errors::NexusError,
 };
+use super::utilities::{
+    dynamo_client, handle_dynamo_generic_error, session_lifespan, verify_password,
+};
+use crate::errors::NexusError;
 use aws_sdk_dynamodb::{
     error::SdkError,
     operation::{
@@ -146,4 +146,3 @@ fn get_hash_and_verified_status_from_query(
         })?;
     Ok((hash_string, *email_verified))
 }
-

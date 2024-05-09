@@ -1,6 +1,5 @@
+use crate::public::create_checkout;
 use leptos::{component, create_resource, view, ErrorBoundary, IntoView, SignalGet, Suspense};
-
-use crate::server::public::create_checkout;
 
 #[component]
 pub fn Checkout() -> impl IntoView {
@@ -51,4 +50,3 @@ pub fn Checkout() -> impl IntoView {
         </Suspense>
     }
 }
-

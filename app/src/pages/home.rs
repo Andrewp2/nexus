@@ -1,6 +1,7 @@
 use leptos::{component, create_action, create_signal, view, IntoView};
-use wasm_bindgen::{JsCast, JsValue, UnwrapThrowExt};
-use web_sys::HtmlScriptElement;
+use web_sys::{
+    wasm_bindgen::JsCast, wasm_bindgen::JsValue, wasm_bindgen::UnwrapThrowExt, HtmlScriptElement,
+};
 
 #[component]
 pub fn Home() -> impl IntoView {
@@ -59,4 +60,3 @@ async fn run(_: ()) -> Result<(), JsValue> {
 
     Ok(())
 }
-

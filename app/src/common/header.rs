@@ -1,8 +1,6 @@
 use leptos::{component, spawn_local, view, IntoView, ReadSignal, WriteSignal};
 use leptos_router::A;
 
-use crate::server::{self};
-
 #[component]
 pub fn Header(logged_in: ReadSignal<bool>, set_logged_in: WriteSignal<bool>) -> impl IntoView {
     view! {
@@ -64,7 +62,7 @@ pub fn Header(logged_in: ReadSignal<bool>, set_logged_in: WriteSignal<bool>) -> 
                                     on:click=move |_| {
                                         set_logged_in(false);
                                         spawn_local(async {
-                                            let _ = server::public::logout().await;
+                                            let _ = crate::public::logout().await;
                                         })
                                     }
 
@@ -101,4 +99,3 @@ pub fn Header(logged_in: ReadSignal<bool>, set_logged_in: WriteSignal<bool>) -> 
         </header>
     }
 }
-

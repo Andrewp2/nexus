@@ -21,13 +21,3 @@ pub fn get_host_prefix() -> &'static str {
         "__Host-"
     }
 }
-
-pub fn get_stripe_webhook_signature() -> String {
-    match env::var("STRIPE_WEBHOOK_SECRET") {
-        Ok(s) => s,
-        Err(_) => {
-            panic!("Cannot get STRIPE_WEBHOOK_SECRET");
-        }
-    }
-}
-

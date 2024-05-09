@@ -1,3 +1,4 @@
+use super::super::globals::env_var::get_host_prefix;
 use async_trait::async_trait;
 use aws_sdk_s3::{
     error::SdkError, operation::list_objects_v2::ListObjectsV2Error, Client as S3Client,
@@ -10,8 +11,6 @@ use axum::{
 };
 use headers::Authorization;
 use http::{header, HeaderName, Response as HttpResponse, StatusCode};
-
-use crate::env_var::get_host_prefix;
 
 pub const GAME_BUCKET_NAME: &str = "games";
 pub const LAUNCHER_BUCKET_NAME: &str = "launchers";
@@ -73,7 +72,7 @@ pub async fn download_file_from_s3(
 //         .query()
 //         .limit(1)
 //         .table_name(get_table_name())
-//         .index_name(index::SESSION_ID)
+//         .index_name(globals::dynamo::constants::index::SESSION_ID)
 //         .key_condition_expression("#k = :v")
 //         .expression_attribute_names("#k".to_string(), table_attributes::SESSION_ID)
 //         .expression_attribute_values(":v".to_string(), AttributeValue::S(session_id))
@@ -88,4 +87,3 @@ pub async fn download_file_from_s3(
 
 //     Ok(email)
 // }
-

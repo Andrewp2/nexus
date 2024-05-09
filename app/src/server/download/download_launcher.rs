@@ -7,12 +7,13 @@ use axum::{
 };
 use http::{Response, StatusCode};
 
-use crate::{
+use super::super::globals::{
     app_state::AppState,
     dynamo::constants::{index, table_attributes},
     env_var::get_table_name,
-    server::utilities::check_if_session_is_valid,
 };
+
+use super::super::utilities::check_if_session_is_valid;
 
 use super::download_utils::{download_file_from_s3, SessionId, LAUNCHER_BUCKET_NAME};
 

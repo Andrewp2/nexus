@@ -1,15 +1,15 @@
 use super::{
+    globals::{
+        dynamo::constants::table_attributes::{
+            self, ACCOUNT_CREATION_TIME, DISPLAY_NAME, EMAIL, EMAIL_VERIFICATION_UUID,
+            EMAIL_VERIFIED, GAMES_BOUGHT, PASSWORD, USER_UUID,
+        },
+        env_var::get_table_name,
+    },
     utilities::{dynamo_client, hash_password},
     verify_email::send_verification_email,
 };
-use crate::{
-    dynamo::constants::table_attributes::{
-        self, ACCOUNT_CREATION_TIME, DISPLAY_NAME, EMAIL, EMAIL_VERIFICATION_UUID, EMAIL_VERIFIED,
-        GAMES_BOUGHT, PASSWORD, USER_UUID,
-    },
-    env_var::get_table_name,
-    errors::NexusError,
-};
+use crate::errors::NexusError;
 use aws_sdk_dynamodb::types::AttributeValue;
 use chrono::Utc;
 use email_address::EmailAddress;
@@ -94,4 +94,3 @@ pub async fn signup(
     leptos_axum::redirect("/email_verification/");
     Ok(())
 }
-

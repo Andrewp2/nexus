@@ -1,9 +1,8 @@
+use super::globals::{dynamo::constants::*, env_var::get_table_name};
 use super::utilities::{
     dynamo_client, extract_email_from_query, handle_dynamo_generic_error, ses_client,
 };
 use crate::{
-    dynamo::constants::*,
-    env_var::get_table_name,
     errors::NexusError,
     site::constants::{SITE_DOMAIN, SITE_EMAIL_ADDRESS, SITE_FULL_DOMAIN},
 };
@@ -77,7 +76,7 @@ pub async fn verify_email(email_uuid: String) -> Result<(), ServerFnError<NexusE
         .query()
         .limit(1)
         .table_name(get_table_name())
-        .index_name(index::EMAIL_VERIFICATION_UUID)
+        .index_name(super::globals::dynamo::constants::index::EMAIL_VERIFICATION_UUID)
         .key_condition_expression("#k = :v")
         .expression_attribute_names("#k".to_string(), table_attributes::EMAIL_VERIFICATION_UUID)
         .expression_attribute_values(":v".to_string(), AttributeValue::S(email_uuid))
@@ -110,4 +109,3 @@ pub async fn verify_email(email_uuid: String) -> Result<(), ServerFnError<NexusE
         Err(e) => Err(handle_dynamo_generic_error(e)),
     }
 }
-

@@ -1,3 +1,13 @@
+pub mod common;
+pub mod error_template;
+pub mod errors;
+pub mod pages;
+pub mod public;
+pub mod site;
+
+#[cfg(feature = "ssr")]
+pub mod server;
+
 use crate::{
     common::{footer::Footer, header::Header},
     error_template::{AppError, ErrorTemplate},
@@ -99,4 +109,3 @@ pub fn App() -> impl IntoView {
         </Router>
     }
 }
-

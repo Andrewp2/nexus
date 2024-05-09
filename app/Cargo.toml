@@ -9,46 +9,72 @@ edition = "2021"
 leptos.workspace = true
 leptos_meta.workspace = true
 leptos_router.workspace = true
+simple_logger.workspace = true
+log.workspace = true
+web-sys.workspace = true
 leptos_axum = { workspace = true, optional = true }
-
 http.workspace = true
 cfg-if.workspace = true
 thiserror.workspace = true
+serde_json.workspace = true
+serde.workspace = true
+axum = { workspace = true, optional = true }
+tokio = { workspace = true, optional = true }
+tower = { workspace = true, optional = true }
+tower-http = { workspace = true, optional = true }
+async-trait = { workspace = true, optional = true }
+tracing = { workspace = true, optional = true }
+lambda_http = { workspace = true, optional = true }
+axum-aws-lambda = { workspace = true, optional = true }
+aws-config = { workspace = true, optional = true }
+aws-sdk-dynamodb = { workspace = true, optional = true }
+aws-sdk-ses = { workspace = true, optional = true }
+aws-sdk-s3 = { workspace = true, optional = true }
+uuid = { workspace = true, optional = true }
+argon2 = { workspace = true, optional = true }
+rand = { workspace = true, optional = true }
+rustrict = { workspace = true, optional = true }
+axum-extra = { workspace = true, optional = true }
+email_address = { workspace = true, optional = true }
+async-stripe = { workspace = true, optional = true }
+headers = { workspace = true, optional = true }
+semver = { workspace = true, optional = true }
+chrono = { workspace = true, optional = true }
 
 [features]
 default = []
 hydrate = ["leptos/hydrate", "leptos_meta/hydrate", "leptos_router/hydrate"]
-ssr = ["leptos/ssr", "leptos_meta/ssr", "leptos_router/ssr", "dep:leptos_axum"]
+# ssr = ["leptos/ssr", "leptos_meta/ssr", "leptos_router/ssr", "dep:leptos_axum"]
 
-# [features]
 # hydrate = ["leptos/hydrate", "leptos_meta/hydrate", "leptos_router/hydrate"]
-# ssr = [
-#     "dep:axum",
-#     "dep:tokio",
-#     "dep:tower",
-#     "dep:tower-http",
-#     "dep:leptos_axum",
-#     "dep:async-trait",
-#     "leptos/ssr",
-#     "leptos_meta/ssr",
-#     "leptos_router/ssr",
-#     "dep:tracing",
-#     "dep:lambda_http",
-#     "dep:axum-aws-lambda",
-#     "dep:aws-config",
-#     "dep:aws-sdk-dynamodb",
-#     "dep:aws-sdk-ses",
-#     "dep:aws-sdk-s3",
-#     "dep:uuid",
-#     "dep:argon2",
-#     "dep:rand",
-#     "dep:rustrict",
-#     "dep:axum-extra",
-#     "dep:email_address",
-#     "dep:async-stripe",
-#     "dep:headers",
-#     "dep:semver",
-# ]
+ssr = [
+    "dep:axum",
+    "dep:tokio",
+    "dep:tower",
+    "dep:tower-http",
+    "dep:leptos_axum",
+    "dep:async-trait",
+    "leptos/ssr",
+    "leptos_meta/ssr",
+    "leptos_router/ssr",
+    "dep:tracing",
+    "dep:lambda_http",
+    "dep:axum-aws-lambda",
+    "dep:aws-config",
+    "dep:aws-sdk-dynamodb",
+    "dep:aws-sdk-ses",
+    "dep:aws-sdk-s3",
+    "dep:uuid",
+    "dep:argon2",
+    "dep:rand",
+    "dep:rustrict",
+    "dep:axum-extra",
+    "dep:email_address",
+    "dep:async-stripe",
+    "dep:headers",
+    "dep:semver",
+    "dep:chrono",
+]
 
 # cargo-lambda allows certain settings to be defined here,
 # see https://www.cargo-lambda.info/commands/deploy.html#deploy-configuration-in-cargo-s-metadata
