@@ -71,8 +71,8 @@ pub async fn create_checkout() -> Result<String, ServerFnError<NexusError>> {
             ServerFnError::from(NexusError::Unhandled)
         })?;
 
-    return match checkout_session.client_secret {
+    match checkout_session.client_secret {
         Some(secret) => Ok(secret),
         None => Err(ServerFnError::from(NexusError::Unhandled)),
-    };
+    }
 }

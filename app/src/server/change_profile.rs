@@ -37,7 +37,7 @@ pub async fn change_email_request(new_email: String) -> Result<(), ServerFnError
         .expression_attribute_names(":v", session_id_cookie.clone())
         .send()
         .await
-        .map_err(|e| aws_sdk_dynamodb::Error::from(e));
+        .map_err(aws_sdk_dynamodb::Error::from);
 
     let user = match old_user_query {
         Ok(o) => Ok(o),
@@ -91,7 +91,7 @@ pub async fn change_email_request(new_email: String) -> Result<(), ServerFnError
     let put_resp = put
         .send()
         .await
-        .map_err(|e| aws_sdk_dynamodb::Error::from(e));
+        .map_err(aws_sdk_dynamodb::Error::from);
 
     match put_resp {
         Ok(_) => Ok(()),
@@ -179,7 +179,7 @@ async fn change_value(name: &str, value: AttributeValue) -> Result<(), ServerFnE
         .expression_attribute_values(":r", value)
         .send()
         .await
-        .map_err(|e| aws_sdk_dynamodb::Error::from(e));
+        .map_err(aws_sdk_dynamodb::Error::from);
     match update_resp {
         Ok(_) => Ok(()),
         Err(e) => Err(handle_dynamo_generic_error(e)),

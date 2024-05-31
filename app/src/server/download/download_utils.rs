@@ -1,16 +1,13 @@
 use super::super::globals::env_var::get_host_prefix;
 use async_trait::async_trait;
 use aws_sdk_s3::{
-    error::SdkError, operation::list_objects_v2::ListObjectsV2Error, Client as S3Client,
+    Client as S3Client,
 };
 use axum::{
     body::{Body, Bytes},
-    extract::{FromRequest, Path, Request},
-    response::{IntoResponse, Response},
-    Extension,
+    extract::{FromRequest, Request},
 };
-use headers::Authorization;
-use http::{header, HeaderName, Response as HttpResponse, StatusCode};
+use http::{HeaderName, StatusCode};
 
 pub const GAME_BUCKET_NAME: &str = "games";
 pub const LAUNCHER_BUCKET_NAME: &str = "launchers";

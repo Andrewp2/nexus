@@ -55,7 +55,7 @@ If this was not you, you may ignore this email.",
         .message(email_message)
         .send()
         .await
-        .map_err(|e| aws_sdk_ses::Error::from(e));
+        .map_err(aws_sdk_ses::Error::from);
 
     match email_send_resp {
         Ok(_) => Ok(()),
@@ -82,7 +82,7 @@ pub async fn verify_email(email_uuid: String) -> Result<(), ServerFnError<NexusE
         .expression_attribute_values(":v".to_string(), AttributeValue::S(email_uuid))
         .send()
         .await
-        .map_err(|e| aws_sdk_dynamodb::Error::from(e));
+        .map_err(aws_sdk_dynamodb::Error::from);
 
     let email = match db_query_result {
         Ok(o) => Ok(extract_email_from_query(o)?),
@@ -102,7 +102,7 @@ pub async fn verify_email(email_uuid: String) -> Result<(), ServerFnError<NexusE
         .expression_attribute_values(":r", AttributeValue::Bool(true))
         .send()
         .await
-        .map_err(|e| aws_sdk_dynamodb::Error::from(e));
+        .map_err(aws_sdk_dynamodb::Error::from);
 
     match db_update_result {
         Ok(_) => Ok(()),

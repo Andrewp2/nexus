@@ -2,7 +2,6 @@ pub mod about;
 pub mod checkout;
 pub mod checkout_cancel;
 pub mod checkout_success;
-pub mod community;
 pub mod credits;
 pub mod download;
 pub mod email_verification;

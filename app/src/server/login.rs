@@ -9,10 +9,8 @@ use super::utilities::{
 };
 use crate::errors::NexusError;
 use aws_sdk_dynamodb::{
-    error::SdkError,
     operation::{
-        query::{QueryError, QueryOutput},
-        update_item::UpdateItemError,
+        query::{QueryOutput},
     },
     types::AttributeValue,
 };
@@ -28,7 +26,7 @@ pub async fn login(
     remember: bool,
 ) -> Result<(), ServerFnError<NexusError>> {
     let client = dynamo_client()?;
-    let columns_to_query = vec![EMAIL, PASSWORD, EMAIL_VERIFIED];
+    let columns_to_query = [EMAIL, PASSWORD, EMAIL_VERIFIED];
     let check_if_password_exists_filter_expression = format!("attribute_exists({})", PASSWORD);
     let key_condition = format!("{} = :email_val", EMAIL);
     let db_result = client
@@ -41,7 +39,7 @@ pub async fn login(
         .filter_expression(check_if_password_exists_filter_expression)
         .send()
         .await
-        .map_err(|e| aws_sdk_dynamodb::Error::from(e));
+        .map_err(aws_sdk_dynamodb::Error::from);
 
     let (password_database_hash, verified) = match db_result {
         Ok(val) => Ok(get_hash_and_verified_status_from_query(val)?),
@@ -74,7 +72,7 @@ pub async fn login(
                 )
                 .send()
                 .await
-                .map_err(|e| aws_sdk_dynamodb::Error::from(e));
+                .map_err(aws_sdk_dynamodb::Error::from);
 
             match update_session_expiry_db_result {
                 Ok(_) => {

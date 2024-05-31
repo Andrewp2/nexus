@@ -13,7 +13,6 @@ use crate::errors::NexusError;
 use aws_sdk_dynamodb::types::AttributeValue;
 use chrono::Utc;
 use email_address::EmailAddress;
-use leptos::logging::error;
 use leptos::ServerFnError;
 use rustrict::{Censor, Type};
 use uuid::Uuid;
@@ -75,7 +74,7 @@ pub async fn signup(
         .condition_expression(check_email_not_exists_expression)
         .send()
         .await
-        .map_err(|e| aws_sdk_dynamodb::Error::from(e));
+        .map_err(aws_sdk_dynamodb::Error::from);
 
     match db_result {
         Ok(_) => Ok(()),

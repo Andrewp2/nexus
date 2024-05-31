@@ -29,7 +29,7 @@ async fn set_expiry_for_email(
         .expression_attribute_values(":r", AttributeValue::N("0".to_string()))
         .send()
         .await
-        .map_err(|e| aws_sdk_dynamodb::Error::from(e));
+        .map_err(aws_sdk_dynamodb::Error::from);
 
     match db_update_result {
         Ok(_) => Ok(()),

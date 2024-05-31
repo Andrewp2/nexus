@@ -18,7 +18,6 @@ use stripe::Client as StripeClient;
 use super::globals::{
     self,
     dynamo::constants::{
-        index,
         table_attributes::{self, EMAIL, SESSION_EXPIRY, SESSION_ID},
     },
     env_var::{get_host_prefix, get_table_name},
@@ -51,7 +50,7 @@ pub fn hash_password(password: &str) -> Result<String, Error> {
 }
 
 pub fn verify_password(password: &str, database_hash: &str) -> bool {
-    if let Ok(hash) = PasswordHash::new(&database_hash) {
+    if let Ok(hash) = PasswordHash::new(database_hash) {
         return Argon2::default()
             .verify_password(password.as_bytes(), &hash)
             .is_ok();
@@ -87,7 +86,7 @@ pub async fn get_session_cookie() -> Result<String, ServerFnError<NexusError>> {
         })?
         .to_string();
 
-    return Ok(f);
+    Ok(f)
 }
 
 pub async fn check_if_session_is_valid(
@@ -105,7 +104,7 @@ pub async fn check_if_session_is_valid(
         .projection_expression([SESSION_ID, SESSION_EXPIRY, EMAIL].join(", "))
         .send()
         .await
-        .map_err(|e| aws_sdk_dynamodb::Error::from(e));
+        .map_err(aws_sdk_dynamodb::Error::from);
 
     match query {
         Ok(o) => {
@@ -231,7 +230,7 @@ pub async fn check_email_uniqueness(
         .projection_expression([EMAIL].join(", "))
         .send()
         .await
-        .map_err(|e| aws_sdk_dynamodb::Error::from(e));
+        .map_err(aws_sdk_dynamodb::Error::from);
 
     match db_query {
         Ok(o) => {
@@ -260,7 +259,7 @@ pub async fn get_email_from_session_id(
         .expression_attribute_values(":v".to_string(), AttributeValue::S(session_id_cookie))
         .send()
         .await
-        .map_err(|e| aws_sdk_dynamodb::Error::from(e));
+        .map_err(aws_sdk_dynamodb::Error::from);
 
     let email = match db_query_result {
         Ok(o) => Ok(extract_email_from_query(o)?),

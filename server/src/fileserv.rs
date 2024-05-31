@@ -1,4 +1,4 @@
-use crate::app::App;
+use app::NexusApp;
 use axum::response::Response as AxumResponse;
 use axum::{
     body::Body,
@@ -21,7 +21,7 @@ pub async fn file_and_error_handler(
     if res.status() == StatusCode::OK {
         res.into_response()
     } else {
-        let handler = leptos_axum::render_app_to_stream(options.to_owned(), App);
+        let handler = leptos_axum::render_app_to_stream(options.to_owned(), NexusApp);
         handler(req).await.into_response()
     }
 }

@@ -1,26 +1,18 @@
-use aws_sdk_dynamodb::types::AttributeValue;
-use aws_sdk_s3::Client as S3Client;
 use axum::{
     body::Body,
     extract::{Extension, Path},
-    response::{IntoResponse, Response as HttpResponse},
+    response::IntoResponse,
 };
 use http::{Response, StatusCode};
 
-use super::super::globals::{
-    app_state::AppState,
-    dynamo::constants::{index, table_attributes},
-    env_var::get_table_name,
-};
-
-use super::super::utilities::check_if_session_is_valid;
+use super::super::globals::app_state::AppState;
 
 use super::download_utils::{download_file_from_s3, SessionId, LAUNCHER_BUCKET_NAME};
 
 pub async fn download_launcher(
     Path(os_type): Path<String>,
     Extension(state): Extension<AppState>,
-    session_id: SessionId,
+    _session_id: SessionId,
 ) -> impl IntoResponse {
     // TODO: Check content_types
     let (launcher_key, content_type) = match os_type.as_str() {

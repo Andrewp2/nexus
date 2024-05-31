@@ -1,4 +1,4 @@
-use app::{server::globals::app_state::AppState, App};
+use app::{server::globals::app_state::AppState, NexusApp};
 use axum::{
     body::Body as AxumBody,
     extract::{Path, State},
@@ -7,7 +7,9 @@ use axum::{
 };
 use leptos::{logging::log, provide_context};
 use leptos_axum::handle_server_fns_with_context;
-use stripe::Client as StripeClient;
+
+pub mod fileserv;
+pub mod stripe_webhook;
 
 async fn server_fn_handler(
     State(app_state): State<AppState>,
@@ -41,22 +43,25 @@ async fn leptos_routes_handler(
             provide_context(app_state.stripe_client.clone());
             provide_context(app_state.s3_client.clone());
         },
-        App,
+        NexusApp,
     );
     handler(req).await.into_response()
 }
 
-#[cfg(feature = "ssr")]
 #[tokio::main]
 async fn main() {
+    use app::server::globals::app_state::AppState;
+    use app::NexusApp;
     use aws_config::BehaviorVersion;
     use aws_sdk_dynamodb::Client as DynamoClient;
     use aws_sdk_s3::Client as S3Client;
     use aws_sdk_ses::Client as SesClient;
     use axum::{routing::get, Router};
+    use fileserv::file_and_error_handler;
     use leptos::get_configuration;
     use leptos_axum::{generate_route_list, LeptosRoutes};
-    use nexus::{app::App, app_state::AppState, fileserv::file_and_error_handler, server};
+    use stripe::Client as StripeClient;
+    use stripe_webhook::stripe_webhook;
 
     simple_logger::init_with_level(log::Level::Info).expect("couldn't initialize logging");
 
@@ -70,7 +75,7 @@ async fn main() {
     // We don't use an address for the lambda function
     #[allow(unused_variables)]
     let addr = leptos_options.site_addr;
-    let routes = generate_route_list(App);
+    let routes = generate_route_list(NexusApp);
 
     let aws_sdk_config = aws_config::load_defaults(BehaviorVersion::latest()).await;
 
@@ -87,17 +92,16 @@ async fn main() {
 
     // build our application with a route
     let app = Router::new()
-        .route(
-            "/api/webhooks/stripe",
-            axum::routing::post(server::stripe_webhook::stripe_webhook),
-        )
+        .route("/api/webhooks/stripe", axum::routing::post(stripe_webhook))
         .route(
             "/api/download/launcher/:os_type",
-            axum::routing::post(server::download::download_launcher::download_launcher),
+            axum::routing::post(app::server::download::download_launcher::download_launcher),
         )
         .route(
             "/api/download/:game/:platform/:version",
-            axum::routing::post(server::download::download_game_version::download_game_version),
+            axum::routing::post(
+                app::server::download::download_game_version::download_game_version,
+            ),
         )
         .route(
             "/api/*fn_name",
@@ -126,11 +130,4 @@ async fn main() {
 
         lambda_http::run(app).await.unwrap();
     }
-}
-
-#[cfg(not(feature = "ssr"))]
-pub fn main() {
-    // no client-side main function
-    // unless we want this to work with e.g., Trunk for a purely client-side app
-    // see lib.rs for hydration function instead
 }

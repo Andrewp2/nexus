@@ -31,6 +31,7 @@ aws-sdk-s3 = { version = "1.15" }
 chrono = "0.4.31"
 uuid = { version = "1.6.1", features = ["v4"] }
 argon2 = { version = "0.5.2", features = [] }
+hmac = { version = "0.12.1" }
 rand = { version = "0.8.5" }
 rustrict = { version = "0.7.16" }
 serde_json = "1.0.108"
@@ -51,34 +52,35 @@ async-stripe = { version = "0.31", default-features = false, features = [
 ] }
 headers = { version = "0.4.0" }
 semver = { version = "1.0" }
+zxcvbn = { version = "3.0.1" }
 
 # Defines a size-optimized profile for the WASM bundle in release mode
-[profile.wasm-release]
-inherits = "release"
-opt-level = 'z'
-lto = true
-codegen-units = 1
-panic = "abort"
+#[profile.wasm-release]
+#inherits = "release"
+#opt-level = 'z'
+#lto = true
+#codegen-units = 1
+#panic = "abort"
+#
+## These dev profiles smooth development without the --release flag
+#[profile.wasm-dev]
+#inherits = "dev"
+#opt-level = 0
+#debug = 0
+#strip = "none"
+#lto = false
+#codegen-units = 256
+#incremental = true
 
-# These dev profiles smooth development without the --release flag
-[profile.wasm-dev]
-inherits = "dev"
-opt-level = 0
-debug = 0
-strip = "none"
-lto = false
-codegen-units = 256
-incremental = true
+#[profile.wasm-dev.package."*"]
+#opt-level = 3
 
-[profile.wasm-dev.package."*"]
-opt-level = 3
+#[profile.server-dev]
+#inherits = "dev"
+#opt-level = 2
 
-[profile.server-dev]
-inherits = "dev"
-opt-level = 2
-
-[profile.dev]
-debug = 0
+#[profile.dev]
+#debug = 0
 
 
 [[workspace.metadata.leptos]]
@@ -101,8 +103,10 @@ site-pkg-dir = "pkg"
 
 # Optional, Activates the tailwind build
 tailwind-input-file = "style/tailwind.css"
+tailwind-config-file = "./tailwind.config.js"
 
 style-file = "style/main.css"
+
 
 # Assets source dir. All files found here will be copied and synchronized to site-root.
 # The assets-dir cannot have a sub directory with the same name/path as site-pkg-dir.

@@ -9,22 +9,26 @@ pub fn Home() -> impl IntoView {
     let (invisible, set_invisible) = create_signal(false);
 
     view! {
-        <h1>"↓↓↓↓ game ↓↓↓↓"</h1>
-        <div id="game-container">
-            <canvas id="bevy"></canvas>
-            <button
-                id="run-button"
-                class:invisible=move || invisible()
-                on:click=move |_| {
-                    game_action.dispatch(());
-                    set_invisible(true);
-                }
+        <h1 class="mx-auto w-1/2 text-center text-4xl">"↓↓↓↓ game ↓↓↓↓"</h1>
+        <div id="game-container" class="">
+            <canvas
+                class="w-1/2 h-max bg-accent-color/5 mx-auto"
+                class:button-clicked=invisible
+            ></canvas>
+            <div class="flex items-center justify-center">
+                <button
+                    id="run-button"
+                    class:invisible=invisible
+                    on:click=move |_| {
+                        game_action.dispatch(());
+                        set_invisible(true);
+                    }
 
-                class="transition-colors duration-300 ease-in-out text-[#color] py-1.5 px-1.5 bg-[#primary-color] rounded-md"
-            >
-
-                "Run Game"
-            </button>
+                    class=" w-48 text-color p-1.5 bg-primary-color rounded-md hover:bg-hover-accent-color glow-hover m-auto"
+                >
+                    "Run Game"
+                </button>
+            </div>
         </div>
     }
 }

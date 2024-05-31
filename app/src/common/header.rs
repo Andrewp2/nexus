@@ -1,98 +1,109 @@
-use leptos::{component, spawn_local, view, IntoView, ReadSignal, WriteSignal};
+use leptos::{component, view, Action, IntoView, Memo, ServerFnError, SignalGet};
 use leptos_router::A;
 
+use crate::{errors::NexusError, public::Logout, AccountState};
+
 #[component]
-pub fn Header(logged_in: ReadSignal<bool>, set_logged_in: WriteSignal<bool>) -> impl IntoView {
+pub fn LoginAndSignupLinks() -> impl IntoView {
     view! {
-        <header class="bg-[#primary-color] border-b-4 border-black flex justify-between text-2xl items-center p-5">
+        <div>
+            <A
+                href="log_in"
+                class=" text-t-color p-1.5 rounded-md hover:bg-hover-accent-color glow-hover"
+            >
+                "Log in"
+            </A>
+            |
+            <A
+                href="log_in"
+                class=" text-t-color p-1.5 rounded-md hover:bg-hover-accent-color glow-hover"
+            >
+                "Sign up"
+            </A>
+        </div>
+    }
+}
+
+#[component]
+pub fn LogOutButton(
+    logout_action: Action<Logout, Result<(), ServerFnError<NexusError>>>,
+) -> impl IntoView {
+    view! {
+        <div>
+            <A
+                href=""
+                on:click=move |_| {
+                    logout_action.dispatch(Logout {});
+                }
+
+                class="text-t-color p-1.5 rounded-md hover:bg-hover-accent-color glow-hover"
+            >
+
+                "Log out"
+            </A>
+        </div>
+    }
+}
+
+#[component]
+pub fn Header(
+    logout_action: Action<Logout, Result<(), ServerFnError<NexusError>>>,
+    account_state: Memo<AccountState>,
+) -> impl IntoView {
+    view! {
+        <header class="bg-white/5 border-b-4 border-white/10 flex justify-between text-2xl items-center p-5 ">
             <img/>
-            <nav class="nav">
+            <nav class="space-x-1">
                 <A
                     href=""
-                    class="transition-colors duration-300 ease-in-out text-white py-1.5 px-1.5 bg-secondary-color-color rounded-md hover:bg-hover-background-color"
+                    class=" text-t-color p-1.5 rounded-md hover:bg-hover-accent-color glow-hover"
                 >
                     "Home"
                 </A>
                 <A
                     href="about"
-                    class="transition-colors duration-300 ease-in-out text-white py-1.5 px-1.5 bg-[#primary-color] rounded-md hover:bg-hover-background-color"
+                    class=" text-t-color p-1.5 rounded-md hover:bg-hover-accent-color glow-hover"
                 >
                     "About"
                 </A>
                 <A
-                    href="community"
-                    class="transition-colors duration-300 ease-in-out text-white py-1.5 px-1.5 bg-[#primary-color] rounded-md hover:bg-hover-background-color"
+                    href="https://discord.gg/EuqSvxDPRY"
+                    class=" text-t-color p-1.5 rounded-md hover:bg-hover-accent-color glow-hover"
                 >
-                    "Community"
+                    "Discord"
                 </A>
                 <A
                     href="support"
-                    class="transition-colors duration-300 ease-in-out text-white py-1.5 px-1.5 bg-[#primary-color] rounded-md hover:bg-hover-background-color"
+                    class=" text-t-color p-1.5 rounded-md hover:bg-hover-accent-color glow-hover"
                 >
                     "Help"
                 </A>
                 <A
                     href="checkout"
-                    class="transition-colors duration-300 ease-in-out text-white py-1.5 px-1.5 bg-[#primary-color] rounded-md hover:bg-hover-background-color"
+                    class=" text-t-color p-1.5 rounded-md bg-primary-color hover:bg-hover-accent-color glow-hover"
                 >
                     "Buy Game"
                 </A>
-                {move || match logged_in() {
-                    true => {
+                {move || match account_state.get() {
+                    AccountState::LoggedIn => {
                         view! {
                             <A
                                 href="download"
-                                class="transition-colors duration-300 ease-in-out text-white py-1.5 px-1.5 bg-[#primary-color] rounded-md hover:bg-hover-background-color"
+                                class=" text-t-color p-1.5 rounded-md hover:bg-hover-accent-color glow-hover"
                             >
                                 "Download"
                             </A>
                         }
+                            .into_view()
                     }
-                    false => view! { <div></div> }.into_view(),
+                    AccountState::LoggedOut => view! {}.into_view(),
                 }}
 
             </nav>
             <div class="ml-auto justify-self-center">
-                {move || match logged_in() {
-                    true => {
-                        view! {
-                            <div>
-                                <A
-                                    href=""
-                                    on:click=move |_| {
-                                        set_logged_in(false);
-                                        spawn_local(async {
-                                            let _ = crate::public::logout().await;
-                                        })
-                                    }
-
-                                    class="transition-colors duration-300 ease-in-out text-white py-1.5 px-1.5 bg-[#primary-color] rounded-md hover:bg-hover-background-color"
-                                >
-
-                                    "Log out"
-                                </A>
-                            </div>
-                        }
-                    }
-                    false => {
-                        view! {
-                            <div>
-                                <A
-                                    href="log_in"
-                                    class="transition-colors duration-300 ease-in-out text-white py-1.5 px-1.5 bg-[#primary-color] rounded-md hover:bg-hover-background-color"
-                                >
-                                    "Log in"
-                                </A>
-                                |
-                                <A
-                                    href="log_in"
-                                    class="transition-colors duration-300 ease-in-out text-white py-1.5 px-1.5 bg-[#primary-color] rounded-md hover:bg-hover-background-color"
-                                >
-                                    "Sign up"
-                                </A>
-                            </div>
-                        }
-                    }
+                {move || match account_state.get() {
+                    AccountState::LoggedIn => view! { <LogOutButton logout_action=logout_action/> },
+                    AccountState::LoggedOut => view! { <LoginAndSignupLinks/> },
                 }}
 
             </div>

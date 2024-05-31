@@ -8,13 +8,11 @@ use axum::{
 };
 use headers::Header;
 use http::{HeaderName, HeaderValue, StatusCode};
-use std::fmt::Debug;
+use std::{env, fmt::Debug};
 use stripe::{CheckoutSession, Event as WebhookEvent, EventObject, EventType, Webhook};
 
-use super::globals::{
-    app_state::AppState,
-    dynamo::constants::table_attributes,
-    env_var::{get_stripe_webhook_signature, get_table_name},
+use app::server::globals::{
+    app_state::AppState, dynamo::constants::table_attributes, env_var::get_table_name,
 };
 
 impl From<(StatusCode, String)> for ServerError {

@@ -1,16 +1,18 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
     content: {
-        files: ["*.html", "./src/**/*.rs"],
+        relative: true,
+        files: ["*.html", "./src/**/*.rs", "./app/src/**/*.rs"],
     },
     theme: {
         extend: {
             colors: {
-                'primary-color': '#4B3F72',
-                'secondary-color': '#39314B',
-                'background-color': '#1E1E2E',
-                'accent-color': '#D1BA74',
-                'hover-background-color': '#928251',
+                'primary-color': '#4F0C97',
+                'secondary-color': '#7D275C',
+                'background-color': '#1A1320',
+                'accent-color': '#C54671',
+                'hover-accent-color': '#C54671',
+                't-color': '#E8DBF4',
             },
             fontFamily: {
                 'roboto-slab': ['"Roboto Slab"', 'serif'],
@@ -21,4 +23,9 @@ module.exports = {
         },
     },
     plugins: [],
+    safelist: [
+        "bg-red-400",
+        "bg-yellow-400",
+        "bg-green-400"
+    ]
 }

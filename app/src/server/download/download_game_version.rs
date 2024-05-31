@@ -10,7 +10,7 @@ use semver::Version;
 
 use super::super::globals::{
     app_state::AppState,
-    dynamo::constants::{index, table_attributes},
+    dynamo::constants::{table_attributes},
     env_var::get_table_name,
 };
 
@@ -20,7 +20,7 @@ use super::download_utils::{download_file_from_s3, SessionId, GAME_BUCKET_NAME};
 
 fn handle_error(msg: String) -> HttpResponse {
     log::error!("{}", msg);
-    return (StatusCode::INTERNAL_SERVER_ERROR, "Unknown error").into_response();
+    (StatusCode::INTERNAL_SERVER_ERROR, "Unknown error").into_response()
 }
 
 pub async fn download_game_version(
@@ -67,11 +67,11 @@ pub async fn download_game_version(
 
     let bought_game = db_query_result
         .items
-        .ok_or_else(|| unhandled_error())?
+        .ok_or_else(unhandled_error)?
         .first()
-        .ok_or_else(|| unhandled_error())?
+        .ok_or_else(unhandled_error)?
         .get(table_attributes::GAMES_BOUGHT)
-        .ok_or_else(|| unhandled_error())?
+        .ok_or_else(unhandled_error)?
         .as_l()
         .map_err(|_| unhandled_error())?
         .iter()
