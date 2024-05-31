@@ -53,11 +53,11 @@ pub fn NexusApp() -> impl IntoView {
         let logged_in_value = login.value().get();
         let logged_out_value = logout.value().get();
 
-        log::error!("{:?} {:?} {:?}", logged_in_value, logged_out_value, prev);
-
         match (logged_in_value, logged_out_value, prev) {
             (Some(Ok(_)), None, None) => AccountState::LoggedIn,
             (_, Some(Ok(_)), None) => AccountState::LoggedOut,
+            (Some(Ok(_)), _, Some(AccountState::LoggedOut)) => AccountState::LoggedIn,
+            (_, Some(Ok(_)), Some(AccountState::LoggedIn)) => AccountState::LoggedOut,
             errors => {
                 log::error!("{errors:#?}");
                 AccountState::default()

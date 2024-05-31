@@ -8,12 +8,7 @@ use super::utilities::{
     dynamo_client, handle_dynamo_generic_error, session_lifespan, verify_password,
 };
 use crate::errors::NexusError;
-use aws_sdk_dynamodb::{
-    operation::{
-        query::{QueryOutput},
-    },
-    types::AttributeValue,
-};
+use aws_sdk_dynamodb::{operation::query::QueryOutput, types::AttributeValue};
 use chrono::Utc;
 use http::{header, HeaderValue};
 use leptos::{expect_context, ServerFnError};
@@ -87,6 +82,7 @@ pub async fn login(
                     );
                     if let Ok(cookie) = HeaderValue::from_str(cookie.as_str()) {
                         response.append_header(header::SET_COOKIE, cookie);
+                        leptos_axum::redirect("/");
                         return Ok(());
                     }
                     log::error!("Unable to create cookie {}", cookie);

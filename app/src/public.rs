@@ -12,21 +12,24 @@ pub async fn login(
     password: String,
     #[server(default)] remember: String,
 ) -> Result<(), ServerFnError<NexusError>> {
-    let remember = match remember.as_str() {
-        "true" => true,
-        "on" => true,
-        "false" => false,
-        "off" => false,
-        "" => false,
-        _ => false,
-    };
-    crate::server::login::login(email, password, remember).await
+    // let remember = match remember.as_str() {
+    //     "true" => true,
+    //     "on" => true,
+    //     "false" => false,
+    //     "off" => false,
+    //     "" => false,
+    //     _ => false,
+    // };
+    // crate::server::login::login(email, password, remember).await
+    leptos_axum::redirect("/");
+    return Ok(());
 }
 
 /// Logs the user out
 #[server(Logout, "/api", "Url", "logout")]
 pub async fn logout() -> Result<(), ServerFnError<NexusError>> {
-    crate::server::logout::logout().await
+    //crate::server::logout::logout().await
+    return Ok(());
 }
 
 /// Server function that signs the user up.

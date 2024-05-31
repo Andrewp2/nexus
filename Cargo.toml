@@ -55,12 +55,12 @@ semver = { version = "1.0" }
 zxcvbn = { version = "3.0.1" }
 
 # Defines a size-optimized profile for the WASM bundle in release mode
-#[profile.wasm-release]
-#inherits = "release"
-#opt-level = 'z'
-#lto = true
-#codegen-units = 1
-#panic = "abort"
+[profile.wasm-release]
+inherits = "release"
+opt-level = 'z'
+lto = true
+codegen-units = 1
+panic = "abort"
 #
 ## These dev profiles smooth development without the --release flag
 #[profile.wasm-dev]

@@ -22,7 +22,14 @@ pub fn LoginAndSignup(
                 <h1 class="text-2xl">"Log in"</h1>
                 <div class="flex flex-col py-1">
                     <label>"Email:"</label>
-                    <input type="email" placeholder="Email" maxlength="64" name="email" required/>
+                    <input
+                        type="email"
+                        placeholder="Email"
+                        maxlength="64"
+                        name="email"
+                        required
+                        class="text-gray-900"
+                    />
                 </div>
                 <div class="flex flex-col py-1">
                     <label>"Password:" <br/></label>
@@ -33,6 +40,7 @@ pub fn LoginAndSignup(
                         name="password"
                         required
                         minlength="10"
+                        class="text-gray-900"
                     />
                 </div>
                 <div class="flex flex-row py-1 box-border">
@@ -50,15 +58,23 @@ pub fn LoginAndSignup(
                     <label>"Display name:"</label>
                     <input
                         type="text"
-                        placeholder="DisplayName"
+                        placeholder="Display Name"
                         maxlength="64"
                         name="display_name"
                         required
+                        class="text-gray-900"
                     />
                 </div>
                 <div class="flex flex-col py-1">
                     <label>"Email:"</label>
-                    <input type="email" placeholder="Email" maxlength="64" name="email" required/>
+                    <input
+                        type="email"
+                        placeholder="Email"
+                        maxlength="64"
+                        name="email"
+                        required
+                        class="text-gray-900"
+                    />
                 </div>
                 <div class="flex flex-col py-1">
                     <label>"Password:"</label>
@@ -73,6 +89,7 @@ pub fn LoginAndSignup(
                         }
 
                         prop:value=password
+                        class="text-gray-900"
                     />
                 </div>
                 <div class="flex flex-col py-1">
