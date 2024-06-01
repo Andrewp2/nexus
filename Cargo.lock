@@ -4461,3 +4461,8 @@ dependencies = [
  "regex",
  "time",
 ]
+
+[[patch.unused]]
+name = "crc32c"
+version = "0.6.7"
+source = "git+https://github.com/jayvdb/crc32c?branch=crc-i67#b84c6cd2dba5464c9c72006ea5c3b8df196060d6"
