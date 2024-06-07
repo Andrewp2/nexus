@@ -12,7 +12,7 @@ pub fn Home() -> impl IntoView {
         <h1 class="mx-auto w-1/2 text-center text-4xl">"↓↓↓↓ game ↓↓↓↓"</h1>
         <div id="game-container" class="">
             <canvas
-                class="w-1/2 h-max bg-accent-color/5 mx-auto"
+                class="w-1/2 h-max bg-accent-color/5 mx-auto mb-4"
                 class:button-clicked=invisible
             ></canvas>
             <div class="flex items-center justify-center">

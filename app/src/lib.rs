@@ -21,8 +21,8 @@ use crate::{
     },
 };
 use leptos::{
-    component, create_action, create_memo, create_server_action, create_signal, view, Errors,
-    IntoView, Memo, SignalGet,
+    component, create_action, create_memo, create_server_action, create_signal, provide_context,
+    use_context, view, Errors, IntoView, Memo, SignalGet,
 };
 use leptos_meta::{provide_meta_context, Stylesheet, Title};
 use leptos_router::{ProtectedRoute, Route, Router, Routes};
@@ -40,12 +40,18 @@ impl Default for AccountState {
     }
 }
 
+#[derive(Debug, Clone)]
+struct CSRFToken {
+    value: String,
+}
+
 #[component]
 pub fn NexusApp() -> impl IntoView {
     // Provides context that manages stylesheets, titles, meta tags, etc.
     provide_meta_context();
     let (bought_game, set_bought_game) = create_signal(false);
-
+    let csrf_token: Option<CSRFToken> = Option::None;
+    provide_context(csrf_token);
     let login = create_server_action::<Login>();
     let logout = create_server_action::<Logout>();
 

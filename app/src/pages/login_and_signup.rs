@@ -110,30 +110,32 @@ pub fn LoginAndSignup(
                         }}
 
                     </p>
-                    <progress
-                        value=move || zxcvbn(password().as_str(), &[]).map_or(0u8, |e| e.score())
+                    <div class="flex justify-start items-center">
+                        <div class="flex-1 rounded-lg bg-slate-400">
+                            <div
+                                // class="[min-width:4px] h-4 rounded-lg bg-slate-400"
+                                class=move || {
+                                    let password_strength = zxcvbn(password().as_str(), &[])
+                                        .map_or(0u8, |e| e.score());
+                                    let color = match password_strength {
+                                        0 | 1 => "bg-red-600",
+                                        2 => "bg-yellow-400",
+                                        3 => "bg-lime-500",
+                                        4 => "bg-lime-900",
+                                        _ => "bg-red-600",
+                                    };
+                                    format!("w-full rounded-lg h-4 {color}")
+                                }
 
-                        max=4
-                        class=move || {
-                            let password_strength = zxcvbn(password().as_str(), &[])
-                                .map_or(0u8, |e| e.score());
-                            let color = match password_strength {
-                                0 | 1 => "bg-red-400",
-                                2 => "bg-yellow-400",
-                                3 | 4 => "bg-green-400",
-                                _ => "bg-gray-400",
-                            };
-                            format!(
-                                "w-full \
-                        [&::-webkit-progress-bar]:rounded-lg \
-                        [&::-webkit-progress-value]:rounded-lg \
-                        [&::-webkit-progress-bar]:bg-slate-400 \
-                        [&::-webkit-progress-value]:{color} \
-                        [&::-moz-progress-bar]:{color}",
-                            )
-                        }
-                    >
-                    </progress>
+                                style=move || {
+                                    let password_strength = zxcvbn(password().as_str(), &[])
+                                        .map_or(0u8, |e| e.score()) * 25;
+                                    format!("width: {password_strength}%")
+                                }
+                            >
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="flex flex-col pt-1 pb-2">
                     <label>"Repeat password:" <br/></label>
