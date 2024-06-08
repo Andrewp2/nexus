@@ -1,6 +1,6 @@
 use super::globals::{
     dynamo::constants::table_attributes::{
-        EMAIL, EMAIL_VERIFIED, PASSWORD, SESSION_EXPIRY, SESSION_ID,
+        EMAIL, EMAIL_VERIFIED, PASSWORD, SESSION_EXPIRY, SESSION_ID, CSRF_TOKEN
     },
     env_var::{get_host_prefix, get_table_name},
 };
@@ -19,7 +19,7 @@ pub async fn login(
     email: String,
     password: String,
     remember: bool,
-) -> Result<(), ServerFnError<NexusError>> {
+) -> Result<String, ServerFnError<NexusError>> {
     let client = dynamo_client()?;
     let columns_to_query = [EMAIL, PASSWORD, EMAIL_VERIFIED];
     let check_if_password_exists_filter_expression = format!("attribute_exists({})", PASSWORD);
@@ -52,9 +52,10 @@ pub async fn login(
             let future_time = Utc::now() + lifespan;
             let session_uuid = Uuid::new_v4().to_string();
             let update_expression = format!(
-                "SET {} = :session_id, {} = :session_expiry",
-                SESSION_ID, SESSION_EXPIRY
+                "SET {} = :session_id, {} = :session_expiry {} = :csrf_token",
+                SESSION_ID, SESSION_EXPIRY, CSRF_TOKEN
             );
+            let csrf_token = "".to_string();
             let update_session_expiry_db_result = client
                 .update_item()
                 .table_name(get_table_name())
@@ -64,6 +65,10 @@ pub async fn login(
                 .expression_attribute_values(
                     ":session_expiry",
                     AttributeValue::N(future_time.timestamp().to_string()),
+                )
+                .expression_attribute_values(
+                    ":csrf_token",
+                    AttributeValue::S(csrf_token.clone())
                 )
                 .send()
                 .await
@@ -83,16 +88,22 @@ pub async fn login(
                     if let Ok(cookie) = HeaderValue::from_str(cookie.as_str()) {
                         response.append_header(header::SET_COOKIE, cookie);
                         leptos_axum::redirect("/");
-                        return Ok(());
+                        return Ok(csrf_token);
                     }
                     log::error!("Unable to create cookie {}", cookie);
                     Err(ServerFnError::from(NexusError::Unhandled))
                 }
                 Err(e) => Err(ServerFnError::from(match e {
-                    aws_sdk_dynamodb::Error::ConditionalCheckFailedException(_) => {
+                    aws_sdk_dynamodb::Error::ConditionalCheckFailedException(e) => {
+                        #[cfg(debug_assertions)]
+                        log::error!("ConditionalCheckFailedException (email not found?) {:?}", e);
                         NexusError::EmailNotFoundLogin
                     }
-                    _ => NexusError::GenericDynamoServiceError,
+                    e => {
+                        #[cfg(debug_assertions)]
+                        log::error!("Generic error {:?}", e);
+                        NexusError::GenericDynamoServiceError
+                        },
                 })),
             }
         }

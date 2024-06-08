@@ -11,18 +11,16 @@ pub async fn login(
     email: String,
     password: String,
     #[server(default)] remember: String,
-) -> Result<(), ServerFnError<NexusError>> {
-    // let remember = match remember.as_str() {
-    //     "true" => true,
-    //     "on" => true,
-    //     "false" => false,
-    //     "off" => false,
-    //     "" => false,
-    //     _ => false,
-    // };
-    // crate::server::login::login(email, password, remember).await
-    leptos_axum::redirect("/");
-    return Ok(());
+) -> Result<String, ServerFnError<NexusError>> {
+    let remember = match remember.as_str() {
+        "true" => true,
+        "on" => true,
+        "false" => false,
+        "off" => false,
+        "" => false,
+        _ => false,
+    };
+    crate::server::login::login(email, password, remember).await
 }
 
 /// Logs the user out

@@ -6,11 +6,9 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 
-[target.'cfg(all(target_os = "linux", any(target_env = "musl", target_arch = "arm", target_arch = "aarch64")))'.dependencies]
-openssl = { version = "0.10", features = ["vendored"] }
-
 [dependencies]
 app = { path = "../app", default-features = false, features = ["ssr"] }
+openssl = { version = "0.10", features = ["vendored"] }
 leptos = { workspace = true, features = ["ssr"] }
 leptos_axum.workspace = true
 

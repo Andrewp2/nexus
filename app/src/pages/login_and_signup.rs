@@ -1,8 +1,8 @@
 use leptos::{
-    component, create_effect, create_server_action, create_signal, event_target_value, view,
-    Action, IntoView, ReadSignal, ServerFnError, SignalGet, SignalSet, SignalWith, WriteSignal,
+    component, create_server_action, create_signal, event_target_value, set_timeout, view, Action, IntoView, ServerFnError, WriteSignal
 };
 use leptos_router::ActionForm;
+use web_sys::SubmitEvent;
 use zxcvbn::zxcvbn;
 
 use crate::{
@@ -12,13 +12,32 @@ use crate::{
 
 #[component]
 pub fn LoginAndSignup(
-    login_action: Action<Login, Result<(), ServerFnError<NexusError>>>,
+    login_action: Action<Login, Result<String, ServerFnError<NexusError>>>,
 ) -> impl IntoView {
     let (password, set_password) = create_signal("".to_string());
+    let (login_disabled, set_login_disabled) = create_signal(false);
+    let (signup_disabled, set_signup_disabled) = create_signal(false);
     let sign_up = create_server_action::<Signup>();
+    let on_submit_login = move |(ev, set_login_disabled): (leptos::ev::SubmitEvent, WriteSignal<bool>)| {
+        // stop the page from reloading!
+        ev.prevent_default();
+        set_login_disabled(true);
+        set_timeout(move || {
+            set_login_disabled(false);
+        }, std::time::Duration::from_millis(500));
+    };
+
+    let on_submit_signup = move |(ev, set_signup_disabled): (leptos::ev::SubmitEvent, WriteSignal<bool>)| {
+        // stop the page from reloading!
+        ev.prevent_default();
+        set_signup_disabled(true);
+        set_timeout(move || {
+            set_signup_disabled(false);
+        }, std::time::Duration::from_millis(500));
+    };
     view! {
         <div class="w-full flex flex-row box-border justify-evenly">
-            <ActionForm action=login_action class="flex flex-col w-60">
+            <ActionForm action=login_action class="flex flex-col w-60" on:submit=move |e: SubmitEvent| on_submit_login((e, set_login_disabled))>
                 <h1 class="text-2xl">"Log in"</h1>
                 <div class="flex flex-col py-1">
                     <label>"Email:"</label>
@@ -49,10 +68,11 @@ pub fn LoginAndSignup(
                 </div>
                 <input
                     type="submit"
-                    class="w-max py-1 px-2 rounded-md bg-primary-color hover:bg-hover-accent-color glow-hover"
+                    class="w-max py-1 px-2 rounded-md bg-primary-color hover:bg-hover-accent-color glow-hover disabled:bg-slate-50"
+                    disabled=login_disabled
                 />
             </ActionForm>
-            <ActionForm action=sign_up class="flex flex-col w-60">
+            <ActionForm action=sign_up class="flex flex-col w-60" on:submit=move |e: SubmitEvent| on_submit_signup((e, set_signup_disabled))>
                 <h1 class="text-2xl">"Sign Up"</h1>
                 <div class="flex flex-col py-1">
                     <label>"Display name:"</label>
@@ -151,6 +171,7 @@ pub fn LoginAndSignup(
                 <input
                     type="submit"
                     class="w-max py-1 px-2 rounded-md bg-primary-color hover:bg-hover-accent-color glow-hover"
+                    disabled=signup_disabled
                 />
             </ActionForm>
         </div>

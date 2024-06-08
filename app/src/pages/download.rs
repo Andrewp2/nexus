@@ -1,4 +1,4 @@
-use leptos::{component, view, IntoView, ReadSignal, WriteSignal};
+use leptos::{component, view, IntoView};
 
 #[component]
 pub fn Download() -> impl IntoView {

@@ -14,6 +14,7 @@ pub mod constants {
         pub const SESSION_ID: &str = "session_id";
         pub const SESSION_EXPIRY: &str = "session_expiry";
         pub const EMAIL_VERIFICATION_UUID: &str = "email_verification_uuid";
+        pub const CSRF_TOKEN: &str = "csrf_token";
     }
 
     pub mod index {
