@@ -18,8 +18,6 @@ pub mod constants {
     }
 
     pub mod index {
-        pub const GAMES_BOUGHT: &str = "games_bought-index";
-        pub const USER_UUID: &str = "user_uuid-index";
         pub const SESSION_ID: &str = "session_id-index";
         pub const EMAIL_VERIFICATION_UUID: &str = "email_verification_uuid-index";
     }
