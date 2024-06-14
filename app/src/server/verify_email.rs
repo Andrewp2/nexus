@@ -1,3 +1,5 @@
+use std::env;
+
 use super::globals::{dynamo::constants::*, env_var::get_table_name};
 use super::utilities::{
     dynamo_client, extract_email_from_query, handle_dynamo_generic_error, ses_client,
@@ -19,11 +21,11 @@ pub async fn send_verification_email(
     let body = format!(
         "Hello,
 Somebody just used this email address to sign up at {}.
-        
+
 If this was you, verify your email by clicking on the link below:
-        
+
 https://{}/email_verification/{}
-        
+
 If this was not you, you may ignore this email.",
         SITE_DOMAIN,
         SITE_FULL_DOMAIN,
@@ -44,6 +46,10 @@ If this was not you, you may ignore this email.",
             log::error!("Could not build email subject content {:?}", e);
             NexusError::Unhandled
         })?;
+    let configuration_set_name = format!(
+        "NexusConfigurationSet{}",
+        env::var("STAGE").unwrap_or("dev".to_string())
+    );
     let email_message = Message::builder()
         .subject(email_subject_content)
         .body(email_body)
@@ -52,6 +58,7 @@ If this was not you, you may ignore this email.",
         .send_email()
         .source(SITE_EMAIL_ADDRESS)
         .destination(Destination::builder().to_addresses(email_address).build())
+        .configuration_set_name(configuration_set_name)
         .message(email_message)
         .send()
         .await

@@ -30,6 +30,7 @@ aws-config = { workspace = true, optional = true }
 aws-sdk-dynamodb = { workspace = true, optional = true }
 aws-sdk-ses = { workspace = true, optional = true }
 aws-sdk-s3 = { workspace = true, optional = true }
+aws-sdk-kms = { workspace = true, optional = true }
 uuid = { workspace = true, optional = true }
 argon2 = { workspace = true, optional = true }
 rand = { workspace = true, optional = true }

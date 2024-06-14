@@ -1,6 +1,6 @@
 use super::globals::{
     dynamo::constants::table_attributes::{
-        EMAIL, EMAIL_VERIFIED, PASSWORD, SESSION_EXPIRY, SESSION_ID, CSRF_TOKEN
+        CSRF_TOKEN, EMAIL, EMAIL_VERIFIED, PASSWORD, SESSION_EXPIRY, SESSION_ID,
     },
     env_var::{get_host_prefix, get_table_name},
 };
@@ -55,6 +55,7 @@ pub async fn login(
                 "SET {} = :session_id, {} = :session_expiry {} = :csrf_token",
                 SESSION_ID, SESSION_EXPIRY, CSRF_TOKEN
             );
+            // TODO: Create CSRF_TOKEN
             let csrf_token = "".to_string();
             let update_session_expiry_db_result = client
                 .update_item()
@@ -66,10 +67,7 @@ pub async fn login(
                     ":session_expiry",
                     AttributeValue::N(future_time.timestamp().to_string()),
                 )
-                .expression_attribute_values(
-                    ":csrf_token",
-                    AttributeValue::S(csrf_token.clone())
-                )
+                .expression_attribute_values(":csrf_token", AttributeValue::S(csrf_token.clone()))
                 .send()
                 .await
                 .map_err(aws_sdk_dynamodb::Error::from);
@@ -103,7 +101,7 @@ pub async fn login(
                         #[cfg(debug_assertions)]
                         log::error!("Generic error {:?}", e);
                         NexusError::GenericDynamoServiceError
-                        },
+                    }
                 })),
             }
         }

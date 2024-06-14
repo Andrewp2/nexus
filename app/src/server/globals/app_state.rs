@@ -1,4 +1,5 @@
 use aws_sdk_dynamodb::Client as DynamoClient;
+use aws_sdk_kms::Client as KeyClient;
 use aws_sdk_s3::Client as S3Client;
 use aws_sdk_ses::Client as SesClient;
 use leptos::LeptosOptions;
@@ -15,5 +16,6 @@ pub struct AppState {
     pub ses_client: Arc<SesClient>,
     pub stripe_client: Arc<StripeClient>,
     pub s3_client: Arc<S3Client>,
+    pub key_client: Arc<KeyClient>,
     pub routes: Vec<RouteListing>,
 }
