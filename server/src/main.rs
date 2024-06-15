@@ -54,6 +54,7 @@ async fn main() {
     use app::NexusApp;
     use aws_config::BehaviorVersion;
     use aws_sdk_dynamodb::Client as DynamoClient;
+    use aws_sdk_kms::Client as KmsClient;
     use aws_sdk_s3::Client as S3Client;
     use aws_sdk_ses::Client as SesClient;
     use axum::{routing::get, Router};
@@ -88,6 +89,7 @@ async fn main() {
         ses_client: SesClient::new(&aws_sdk_config).into(),
         stripe_client: StripeClient::new(stripe_secret_key).into(),
         s3_client: S3Client::new(&aws_sdk_config).into(),
+        key_client: KmsClient::new(&aws_sdk_config).into(),
     };
 
     // build our application with a route

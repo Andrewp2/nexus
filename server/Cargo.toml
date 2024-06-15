@@ -27,6 +27,7 @@ aws-config.workspace = true
 aws-sdk-dynamodb.workspace = true
 aws-sdk-ses.workspace = true
 aws-sdk-s3.workspace = true
+aws-sdk-kms.workspace = true
 uuid.workspace = true
 argon2.workspace = true
 rand.workspace = true
