@@ -40,7 +40,6 @@ axum-extra = { version = "0.9.2", features = ["cookie", "typed-header"] }
 email_address = { version = "0.2.4" }
 gloo-net = { version = "0.5", features = ["http"] }
 web-sys = { version = "0.3.66", features = ["Window"] }
-js-sys = { version = "0.3.66" }
 wasm-bindgen-futures = { version = "*" }
 async-stripe = { version = "0.31", default-features = false, features = [
     "runtime-tokio-hyper",

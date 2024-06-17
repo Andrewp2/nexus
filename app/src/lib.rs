@@ -21,8 +21,8 @@ use crate::{
     },
 };
 use leptos::{
-    component, create_server_action, create_signal, provide_context,
-    view, Errors, IntoView, Memo, SignalGet,
+    component, create_server_action, create_signal, provide_context, view, Errors, IntoView, Memo,
+    SignalGet,
 };
 use leptos_meta::{provide_meta_context, Stylesheet, Title};
 use leptos_router::{ProtectedRoute, Route, Router, Routes};
