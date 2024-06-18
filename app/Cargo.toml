@@ -41,11 +41,16 @@ async-stripe = { workspace = true, optional = true }
 headers = { workspace = true, optional = true }
 semver = { workspace = true, optional = true }
 chrono = { workspace = true, optional = true }
-zxcvbn = "2.2.2"
+zxcvbn = { workspace = true, optional = true }
 
 [features]
 default = []
-hydrate = ["leptos/hydrate", "leptos_meta/hydrate", "leptos_router/hydrate"]
+hydrate = [
+    "leptos/hydrate",
+    "leptos_meta/hydrate",
+    "leptos_router/hydrate",
+    "dep:zxcvbn",
+]
 ssr = [
     "dep:axum",
     "dep:tokio",
@@ -74,11 +79,8 @@ ssr = [
     "dep:headers",
     "dep:semver",
     "dep:chrono",
+    "dep:zxcvbn",
 ]
-
-# ssr = ["leptos/ssr", "leptos_meta/ssr", "leptos_router/ssr", "dep:leptos_axum"]
-
-# hydrate = ["leptos/hydrate", "leptos_meta/hydrate", "leptos_router/hydrate"]
 
 # cargo-lambda allows certain settings to be defined here,
 # see https://www.cargo-lambda.info/commands/deploy.html#deploy-configuration-in-cargo-s-metadata

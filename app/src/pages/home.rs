@@ -1,11 +1,17 @@
 use leptos::{component, create_action, create_signal, view, IntoView};
+
+#[cfg(feature = "hydrate")]
 use web_sys::{
     wasm_bindgen::JsCast, wasm_bindgen::JsValue, wasm_bindgen::UnwrapThrowExt, HtmlScriptElement,
 };
 
 #[component]
 pub fn Home() -> impl IntoView {
+    #[cfg(feature = "hydrate")]
     let game_action = create_action(|_: &()| async move { run(()).await });
+    #[cfg(feature = "ssr")]
+    let game_action = create_action(|_: &()| async move { Ok::<(), ()>(()) });
+
     let (invisible, set_invisible) = create_signal(false);
 
     view! {
@@ -32,7 +38,7 @@ pub fn Home() -> impl IntoView {
         </div>
     }
 }
-
+#[cfg(feature = "hydrate")]
 async fn run(_: ()) -> Result<(), JsValue> {
     let w = web_sys::window().unwrap_throw();
     let document = w.document().unwrap_throw();
