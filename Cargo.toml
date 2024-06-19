@@ -65,7 +65,7 @@ opt-level = 'z'
 lto = true
 codegen-units = 1
 panic = "abort"
-#
+
 ## These dev profiles smooth development without the --release flag
 #[profile.wasm-dev]
 #inherits = "dev"

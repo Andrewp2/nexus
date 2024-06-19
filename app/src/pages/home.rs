@@ -9,6 +9,7 @@ use web_sys::{
 pub fn Home() -> impl IntoView {
     #[cfg(feature = "hydrate")]
     let game_action = create_action(|_: &()| async move { run(()).await });
+
     #[cfg(feature = "ssr")]
     let game_action = create_action(|_: &()| async move { Ok::<(), ()>(()) });
 
