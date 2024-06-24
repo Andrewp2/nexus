@@ -1,5 +1,3 @@
-use std::env;
-
 use super::globals::{dynamo::constants::*, env_var::get_table_name};
 use super::utilities::{
     dynamo_client, extract_email_from_query, handle_dynamo_generic_error, ses_client,
@@ -46,10 +44,7 @@ If this was not you, you may ignore this email.",
             log::error!("Could not build email subject content {:?}", e);
             NexusError::Unhandled
         })?;
-    let configuration_set_name = format!(
-        "NexusConfigurationSet{}",
-        env::var("STAGE").unwrap_or("dev".to_string())
-    );
+    let configuration_set_name = format!("NexusConfigurationSet{}", std::env!("STAGE"));
     let email_message = Message::builder()
         .subject(email_subject_content)
         .body(email_body)

@@ -7,6 +7,7 @@ use argon2::{
 use aws_sdk_dynamodb::{
     operation::query::QueryOutput, types::AttributeValue, Client as DynamoClient,
 };
+use aws_sdk_kms::Client as KeyClient;
 use aws_sdk_ses::Client as SesClient;
 use axum_extra::extract::CookieJar;
 use chrono::Utc;
@@ -17,9 +18,7 @@ use stripe::Client as StripeClient;
 
 use super::globals::{
     self,
-    dynamo::constants::{
-        table_attributes::{self, EMAIL, SESSION_EXPIRY, SESSION_ID},
-    },
+    dynamo::constants::table_attributes::{self, EMAIL, SESSION_EXPIRY, SESSION_ID},
     env_var::{get_host_prefix, get_table_name},
 };
 
@@ -31,6 +30,10 @@ pub fn dynamo_client() -> Result<Arc<DynamoClient>, ServerFnError<NexusError>> {
 
 pub fn ses_client() -> Result<Arc<SesClient>, ServerFnError<NexusError>> {
     use_context::<Arc<SesClient>>().ok_or_else(|| ServerFnError::from(NexusError::Unhandled))
+}
+
+pub fn kms_client() -> Result<Arc<KeyClient>, ServerFnError<NexusError>> {
+    use_context::<Arc<KeyClient>>().ok_or_else(|| ServerFnError::from(NexusError::Unhandled))
 }
 
 pub fn stripe_client() -> Result<Arc<StripeClient>, ServerFnError<NexusError>> {

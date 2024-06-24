@@ -7,5 +7,6 @@ rustflags = ["-C", "link-arg=-fuse-ld=/usr/bin/mold"]
 
 [unstable]
 codegen-backend = true
+
 [profile.server-dev]
 codegen-backend = "cranelift"

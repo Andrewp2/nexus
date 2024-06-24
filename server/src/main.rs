@@ -80,8 +80,9 @@ async fn main() {
 
     let aws_sdk_config = aws_config::load_defaults(BehaviorVersion::latest()).await;
 
-    let stripe_secret_key =
-        std::env::var("STRIPE_SECRET_KEY").expect("Missing STRIPE_SECRET_KEY in env");
+    // let stripe_secret_key =
+    //     std::env::var("STRIPE_SECRET_KEY").expect("Missing STRIPE_SECRET_KEY in env");
+    let stripe_secret_key = std::env!("STRIPE_SECRET_KEY");
     let app_state = AppState {
         leptos_options,
         routes: routes.clone(),

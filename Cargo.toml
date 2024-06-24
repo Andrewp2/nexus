@@ -57,6 +57,8 @@ async-stripe = { version = "0.31", default-features = false, features = [
 headers = { version = "0.4.0" }
 semver = { version = "1.0" }
 zxcvbn = { version = "3.0.1" }
+base64 = { version = "0.22.1" }
+blake3 = { version = "1.5.1", features = ["traits-preview"] }
 
 # Defines a size-optimized profile for the WASM bundle in release mode
 [profile.wasm-release]
@@ -65,6 +67,11 @@ opt-level = 'z'
 lto = true
 codegen-units = 1
 panic = "abort"
+
+[profile.dev]
+opt-level = 1
+[profile.dev.package."*"]
+opt-level = 3
 
 ## These dev profiles smooth development without the --release flag
 #[profile.wasm-dev]

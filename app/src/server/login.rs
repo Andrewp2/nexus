@@ -1,19 +1,65 @@
-use super::globals::{
-    dynamo::constants::table_attributes::{
-        CSRF_TOKEN, EMAIL, EMAIL_VERIFIED, PASSWORD, SESSION_EXPIRY, SESSION_ID,
-    },
-    env_var::{get_host_prefix, get_table_name},
-};
 use super::utilities::{
     dynamo_client, handle_dynamo_generic_error, session_lifespan, verify_password,
 };
+use super::{
+    globals::{
+        dynamo::constants::table_attributes::{
+            CSRF_TOKEN, EMAIL, EMAIL_VERIFIED, PASSWORD, SESSION_EXPIRY, SESSION_ID,
+        },
+        env_var::{get_host_prefix, get_table_name},
+    },
+    utilities::kms_client,
+};
 use crate::errors::NexusError;
 use aws_sdk_dynamodb::{operation::query::QueryOutput, types::AttributeValue};
+use base64::{engine::general_purpose, Engine as _};
 use chrono::Utc;
+use hmac::{Mac, SimpleHmac};
 use http::{header, HeaderValue};
 use leptos::{expect_context, ServerFnError};
 use leptos_axum::ResponseOptions;
 use uuid::Uuid;
+
+async fn generate_csrf_token(
+    kms_client: &aws_sdk_kms::Client,
+    session_id: String,
+) -> Result<String, ServerFnError<NexusError>> {
+    // https://thecopenhagenbook.com/csrf
+    // A new token is generated and hashed with HMAC SHA-256 using a secret key
+    // https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html#signed-double-submit-cookie-recommended
+
+    // What we do - Take session_id (changes each login session), secret cryptographic key (KMS), and a cryptographically random value.
+    // Then, HMAC SHA256 all these together ("hmac . message"). Store CSR
+    // let random_bytes = kms_client
+    //     .generate_random()
+    //     .number_of_bytes(16)
+    //     .send()
+    //     .await
+    //     .map_err(|e| {
+    //         log::error!("Failed to generate random bytes: {:?}", e);
+    //         ServerFnError::from(NexusError::Unhandled)
+    //     })?
+    //     .plaintext
+    //     .unwrap();
+    // let random_string = general_purpose::URL_SAFE_NO_PAD.encode(random_bytes);
+    // TODO: Generate random string
+    let message = format!("{}!{}", session_id, random_string);
+    let csrf_secret = std::env!("CSRF_SECRET");
+    // let csrf_secret = std::env::var("CSRF_SECRET").map_err(|e| {
+    //     log::error!("Failed to get CSRF_SECRET: {:?}", e);
+    //     ServerFnError::from(NexusError::Unhandled)
+    // })?;
+    let mut hmac =
+        SimpleHmac::<blake3::Hasher>::new_from_slice(csrf_secret.as_bytes()).map_err(|e| {
+            log::error!("Invalid length for Hmac? {:?}", e);
+            ServerFnError::from(NexusError::Unhandled)
+        })?;
+    hmac.update(message.as_bytes());
+    let hmac_result = hmac.finalize().into_bytes();
+    let hmac_string = general_purpose::STANDARD.encode(hmac_result);
+    let csrf_token = format!("{}.{}", hmac_string, message);
+    Ok(csrf_token)
+}
 
 pub async fn login(
     email: String,
@@ -21,6 +67,7 @@ pub async fn login(
     remember: bool,
 ) -> Result<String, ServerFnError<NexusError>> {
     let client = dynamo_client()?;
+    let kms_client = kms_client()?;
     let columns_to_query = [EMAIL, PASSWORD, EMAIL_VERIFIED];
     let check_if_password_exists_filter_expression = format!("attribute_exists({})", PASSWORD);
     let key_condition = format!("{} = :email_val", EMAIL);
@@ -52,11 +99,10 @@ pub async fn login(
             let future_time = Utc::now() + lifespan;
             let session_uuid = Uuid::new_v4().to_string();
             let update_expression = format!(
-                "SET {} = :session_id, {} = :session_expiry {} = :csrf_token",
+                "SET {} = :session_id, {} = :session_expiry, {} = :csrf_token",
                 SESSION_ID, SESSION_EXPIRY, CSRF_TOKEN
             );
-            // TODO: Create CSRF_TOKEN
-            let csrf_token = "".to_string();
+            let csrf_token = generate_csrf_token(&kms_client, session_uuid.clone()).await?;
             let update_session_expiry_db_result = client
                 .update_item()
                 .table_name(get_table_name())

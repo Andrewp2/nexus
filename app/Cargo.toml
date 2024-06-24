@@ -42,6 +42,9 @@ headers = { workspace = true, optional = true }
 semver = { workspace = true, optional = true }
 chrono = { workspace = true, optional = true }
 zxcvbn = { workspace = true, optional = true }
+base64 = { workspace = true, optional = true }
+hmac = { workspace = true, optional = true }
+blake3 = { workspace = true, optional = true }
 
 [features]
 default = []
@@ -80,6 +83,9 @@ ssr = [
     "dep:semver",
     "dep:chrono",
     "dep:zxcvbn",
+    "dep:base64",
+    "dep:hmac",
+    "dep:blake3",
 ]
 
 # cargo-lambda allows certain settings to be defined here,
