@@ -8,10 +8,10 @@ use axum::{
 use http::StatusCode;
 use semver::Version;
 
+use crate::server::globals::dynamo::{query_builder, query_setup, TableKeyType};
+
 use super::super::globals::{
-    app_state::AppState,
-    dynamo::constants::{table_attributes},
-    env_var::get_table_name,
+    app_state::AppState, dynamo::constants::table_attributes, env_var::get_table_name,
 };
 
 use super::super::utilities::check_if_session_is_valid;
@@ -30,8 +30,16 @@ pub async fn download_game_version(
 ) -> Result<impl IntoResponse, impl IntoResponse> {
     // TODO: Authentication
     let dynamo_client = state.dynamodb_client;
+    let kms_client = state.key_client;
     let session_id = session_id.session_id;
-    let session_valid_result = check_if_session_is_valid(session_id.clone(), &dynamo_client).await;
+    // TODO: fix this
+    let session_valid_result = check_if_session_is_valid(
+        session_id.clone(),
+        "".to_string(),
+        &dynamo_client,
+        &kms_client,
+    )
+    .await;
 
     let unhandled_error = || -> HttpResponse { handle_error("unhandled".to_string()) };
 
@@ -54,13 +62,7 @@ pub async fn download_game_version(
     }
 
     // TODO: We are authenticated, but we need to check if we can download the game version
-    let db_query_result = dynamo_client
-        .query()
-        .limit(1)
-        .table_name(get_table_name())
-        .key_condition_expression("#k = :v")
-        .expression_attribute_names("#k".to_string(), table_attributes::EMAIL)
-        .expression_attribute_values(":v".to_string(), AttributeValue::S(email))
+    let db_query_result = query_setup(&dynamo_client, email, TableKeyType::Email)
         .send()
         .await
         .map_err(|_| unhandled_error())?;

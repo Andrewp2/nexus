@@ -1,8 +1,12 @@
 use super::globals::{
     self,
-    dynamo::constants::{
-        index::EMAIL_VERIFICATION_UUID,
-        table_attributes::{self, EMAIL, EMAIL_VERIFIED, SESSION_EXPIRY, SESSION_ID},
+    dynamo::{
+        self,
+        constants::{
+            index::EMAIL_VERIFICATION_UUID,
+            table_attributes::{self, EMAIL, EMAIL_VERIFIED, SESSION_EXPIRY, SESSION_ID},
+        },
+        query_builder, query_entire_user, query_setup,
     },
     env_var::get_table_name,
 };
@@ -27,18 +31,14 @@ pub async fn change_email_request(new_email: String) -> Result<(), ServerFnError
     }
     let session_id_cookie = get_session_cookie().await?;
     let client = dynamo_client()?;
-    let old_user_query = client
-        .query()
-        .table_name(get_table_name())
-        .limit(1)
-        .index_name(globals::dynamo::constants::index::SESSION_ID)
-        .key_condition_expression("#k = :v")
-        .expression_attribute_names("#k", SESSION_ID)
-        .expression_attribute_names(":v", session_id_cookie.clone())
-        .send()
-        .await
-        .map_err(aws_sdk_dynamodb::Error::from);
-
+    let old_user_query = query_setup(
+        &client,
+        session_id_cookie.clone(),
+        dynamo::TableKeyType::SessionId,
+    )
+    .send()
+    .await
+    .map_err(aws_sdk_dynamodb::Error::from);
     let user = match old_user_query {
         Ok(o) => Ok(o),
         Err(e) => Err(handle_dynamo_generic_error(e)),
@@ -78,7 +78,6 @@ pub async fn change_email_request(new_email: String) -> Result<(), ServerFnError
         .put_item()
         .table_name(get_table_name())
         .condition_expression(check_email_not_already_exists_expression);
-
     for (name, attribute) in attributes.iter() {
         put = put.item(name, attribute.clone());
     }
@@ -88,11 +87,7 @@ pub async fn change_email_request(new_email: String) -> Result<(), ServerFnError
         AttributeValue::S(change_email_verification_uuid.clone()),
     );
     put = put.item(EMAIL_VERIFIED, AttributeValue::Bool(false));
-    let put_resp = put
-        .send()
-        .await
-        .map_err(aws_sdk_dynamodb::Error::from);
-
+    let put_resp = put.send().await.map_err(aws_sdk_dynamodb::Error::from);
     match put_resp {
         Ok(_) => Ok(()),
         Err(e) => {
@@ -105,6 +100,7 @@ pub async fn change_email_request(new_email: String) -> Result<(), ServerFnError
             }))
         }
     }?;
+    // let old_email = old_user_query.email.unwrap();
     let old_email = attributes
         .get(EMAIL)
         .ok_or_else(|| {

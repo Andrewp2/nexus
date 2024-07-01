@@ -18,7 +18,10 @@ use stripe::Client as StripeClient;
 
 use super::globals::{
     self,
-    dynamo::constants::table_attributes::{self, EMAIL, SESSION_EXPIRY, SESSION_ID},
+    dynamo::{
+        constants::table_attributes::{self, EMAIL, SESSION_EXPIRY, SESSION_ID},
+        query_builder, query_setup, TableKeyType,
+    },
     env_var::{get_host_prefix, get_table_name},
 };
 
@@ -94,20 +97,19 @@ pub async fn get_session_cookie() -> Result<String, ServerFnError<NexusError>> {
 
 pub async fn check_if_session_is_valid(
     session_id_cookie: String,
-    client: &aws_sdk_dynamodb::Client,
+    csrf_cookie: String,
+    dynamo_client: &DynamoClient,
+    kms_client: &KeyClient,
 ) -> Result<(bool, String), ServerFnError<NexusError>> {
-    let query = client
-        .query()
-        .table_name(get_table_name())
-        .limit(1)
-        .index_name(globals::dynamo::constants::index::SESSION_ID)
-        .key_condition_expression("#k = :v")
-        .expression_attribute_names("#k", SESSION_ID)
-        .expression_attribute_names(":v", session_id_cookie.clone())
-        .projection_expression([SESSION_ID, SESSION_EXPIRY, EMAIL].join(", "))
-        .send()
-        .await
-        .map_err(aws_sdk_dynamodb::Error::from);
+    let query = query_setup(
+        dynamo_client,
+        session_id_cookie.clone(),
+        TableKeyType::SessionId,
+    )
+    .projection_expression([SESSION_ID, SESSION_EXPIRY, EMAIL].join(", "))
+    .send()
+    .await
+    .map_err(aws_sdk_dynamodb::Error::from);
 
     match query {
         Ok(o) => {
@@ -252,14 +254,7 @@ pub async fn get_email_from_session_id(
     session_id_cookie: String,
     client: &aws_sdk_dynamodb::Client,
 ) -> Result<String, ServerFnError<NexusError>> {
-    let db_query_result = client
-        .query()
-        .limit(1)
-        .table_name(get_table_name())
-        .index_name(globals::dynamo::constants::index::SESSION_ID)
-        .key_condition_expression("#k = :v")
-        .expression_attribute_names("#k".to_string(), table_attributes::SESSION_ID)
-        .expression_attribute_values(":v".to_string(), AttributeValue::S(session_id_cookie))
+    let db_query_result = query_setup(client, session_id_cookie, TableKeyType::SessionId)
         .send()
         .await
         .map_err(aws_sdk_dynamodb::Error::from);

@@ -12,7 +12,7 @@ use crate::{
 
 #[component]
 pub fn LoginAndSignup(
-    login_action: Action<Login, Result<String, ServerFnError<NexusError>>>,
+    login_action: Action<Login, Result<(), ServerFnError<NexusError>>>,
 ) -> impl IntoView {
     let (password, set_password) = create_signal("".to_string());
     let (login_disabled, set_login_disabled) = create_signal(false);

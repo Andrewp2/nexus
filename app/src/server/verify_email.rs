@@ -1,3 +1,4 @@
+use super::globals::dynamo::{query_builder, query_setup, TableKeyType};
 use super::globals::{dynamo::constants::*, env_var::get_table_name};
 use super::utilities::{
     dynamo_client, extract_email_from_query, handle_dynamo_generic_error, ses_client,
@@ -74,14 +75,7 @@ pub async fn verify_email(email_uuid: String) -> Result<(), ServerFnError<NexusE
     let client = dynamo_client()?;
 
     // first we have to query to find the email address associated with this verification attempt.
-    let db_query_result = client
-        .query()
-        .limit(1)
-        .table_name(get_table_name())
-        .index_name(super::globals::dynamo::constants::index::EMAIL_VERIFICATION_UUID)
-        .key_condition_expression("#k = :v")
-        .expression_attribute_names("#k".to_string(), table_attributes::EMAIL_VERIFICATION_UUID)
-        .expression_attribute_values(":v".to_string(), AttributeValue::S(email_uuid))
+    let db_query_result = query_setup(&client, email_uuid, TableKeyType::EmailVerificationUUID)
         .send()
         .await
         .map_err(aws_sdk_dynamodb::Error::from);

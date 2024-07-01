@@ -45,9 +45,6 @@ pub async fn signup(
     let display_name_av = AttributeValue::S(display_name);
     let email_av = AttributeValue::S(email.clone());
     let games_bought_av = AttributeValue::L(Vec::new());
-    // let hashed_password_av = AttributeValue::B(aws_sdk_dynamodb::primitives::Blob::new(
-    //     hashed_password.to_string(),
-    // ));
     let hashed_password_av = AttributeValue::S(hashed_password.to_string());
     let uuid = Uuid::new_v4().to_string();
     let uuid_av = AttributeValue::S(uuid);

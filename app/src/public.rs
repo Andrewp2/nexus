@@ -11,7 +11,7 @@ pub async fn login(
     email: String,
     password: String,
     #[server(default)] remember: String,
-) -> Result<String, ServerFnError<NexusError>> {
+) -> Result<(), ServerFnError<NexusError>> {
     let remember = match remember.as_str() {
         "true" => true,
         "on" => true,

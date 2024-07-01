@@ -1,8 +1,6 @@
 use super::super::globals::env_var::get_host_prefix;
 use async_trait::async_trait;
-use aws_sdk_s3::{
-    Client as S3Client,
-};
+use aws_sdk_s3::Client as S3Client;
 use axum::{
     body::{Body, Bytes},
     extract::{FromRequest, Request},
@@ -65,14 +63,7 @@ pub async fn download_file_from_s3(
 // pub async fn download() -> Result<String, ServerFnError<NexusError>> {
 //     let client = dynamo_client()?;
 //     let session_id = get_session_cookie().await?;
-//     let db_query_result = client
-//         .query()
-//         .limit(1)
-//         .table_name(get_table_name())
-//         .index_name(globals::dynamo::constants::index::SESSION_ID)
-//         .key_condition_expression("#k = :v")
-//         .expression_attribute_names("#k".to_string(), table_attributes::SESSION_ID)
-//         .expression_attribute_values(":v".to_string(), AttributeValue::S(session_id))
+//     let db_query_result = query_setup(&client, session_id, TableKeyType::SessionId)
 //         .send()
 //         .await
 //         .map_err(|e| aws_sdk_dynamodb::Error::from(e));

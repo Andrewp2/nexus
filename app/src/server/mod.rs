@@ -1,5 +1,6 @@
 pub mod change_profile;
 pub mod create_checkout;
+pub mod csrf;
 pub mod download;
 pub mod globals;
 pub mod login;

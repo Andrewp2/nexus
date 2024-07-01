@@ -43,8 +43,10 @@ semver = { workspace = true, optional = true }
 chrono = { workspace = true, optional = true }
 zxcvbn = { workspace = true, optional = true }
 base64 = { workspace = true, optional = true }
-hmac = { workspace = true, optional = true }
-blake3 = { workspace = true, optional = true }
+sha2 = { workspace = true, optional = true }
+
+[dev-dependencies]
+mockall = { workspace = true }
 
 [features]
 default = []
@@ -84,8 +86,7 @@ ssr = [
     "dep:chrono",
     "dep:zxcvbn",
     "dep:base64",
-    "dep:hmac",
-    "dep:blake3",
+    "dep:sha2",
 ]
 
 # cargo-lambda allows certain settings to be defined here,
