@@ -1,7 +1,8 @@
-use super::globals::dynamo::{query_builder, query_setup, TableKeyType};
+use super::globals::dynamo::{query_setup, update_setup, TableKeyType};
 use super::globals::{dynamo::constants::*, env_var::get_table_name};
 use super::utilities::{
-    dynamo_client, extract_email_from_query, handle_dynamo_generic_error, ses_client,
+    dynamo_client, extract_email_from_query, extract_email_verification_request_time_from_query,
+    handle_dynamo_generic_error, ses_client,
 };
 use crate::{
     errors::NexusError,
@@ -9,6 +10,7 @@ use crate::{
 };
 use aws_sdk_dynamodb::types::AttributeValue;
 use aws_sdk_ses::types::{Body, Content, Destination, Message};
+use chrono::{DateTime, Utc};
 use leptos::ServerFnError;
 
 /// Sends an email to the given users address with a link to verify their account.
@@ -80,19 +82,29 @@ pub async fn verify_email(email_uuid: String) -> Result<(), ServerFnError<NexusE
         .await
         .map_err(aws_sdk_dynamodb::Error::from);
 
-    let email = match db_query_result {
-        Ok(o) => Ok(extract_email_from_query(o)?),
+    let (email, email_verification_request_time) = match db_query_result {
+        Ok(o) => Ok((
+            extract_email_from_query(&o)?,
+            extract_email_verification_request_time_from_query(&o)?,
+        )),
         Err(e) => Err(handle_dynamo_generic_error(e)),
     }?;
 
+    // TODO: Evaluate this 24 hour constant to verify email time
+    let time_to_verify_email = chrono::Duration::hours(24);
+    let now = Utc::now();
+    let maximum_time_allowed = DateTime::from_timestamp(email_verification_request_time, 0)
+        .unwrap()
+        + time_to_verify_email;
+
+    if now > maximum_time_allowed {
+        return Err(ServerFnError::from(
+            NexusError::EmailVerificationTookTooLong,
+        ));
+    }
+
     // secondly if we can find the email, update its verification field
-    let db_update_result = client
-        .update_item()
-        .table_name(get_table_name())
-        .key(
-            table_attributes::EMAIL,
-            AttributeValue::S(email.to_string()),
-        )
+    let db_update_result = update_setup(&client, email)
         .update_expression("SET #e = :r")
         .expression_attribute_names("#e".to_string(), table_attributes::EMAIL_VERIFIED)
         .expression_attribute_values(":r", AttributeValue::Bool(true))

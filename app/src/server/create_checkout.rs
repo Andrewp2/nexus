@@ -4,6 +4,7 @@ use stripe::{
     CreateCustomer, Customer,
 };
 
+use crate::errors::UNHANDLED;
 #[allow(unused_imports)]
 use crate::{
     errors::NexusError,
@@ -25,7 +26,7 @@ pub async fn create_checkout() -> Result<String, ServerFnError<NexusError>> {
         let (valid, email_fetched) =
             check_if_session_is_valid(session_id_cookie, &dynamo_client).await?;
         if !valid {
-            return Err(ServerFnError::from(NexusError::Unhandled));
+            return Err(UNHANDLED);
         }
         email = email_fetched;
     }
@@ -44,7 +45,7 @@ pub async fn create_checkout() -> Result<String, ServerFnError<NexusError>> {
     .await
     .map_err(|e| {
         log::error!("{:?}", e);
-        ServerFnError::from(NexusError::Unhandled)
+        UNHANDLED
     })?;
 
     log::info!(
@@ -68,11 +69,11 @@ pub async fn create_checkout() -> Result<String, ServerFnError<NexusError>> {
         .await
         .map_err(|e| {
             log::error!("{:?}", e);
-            ServerFnError::from(NexusError::Unhandled)
+            UNHANDLED
         })?;
 
     match checkout_session.client_secret {
         Some(secret) => Ok(secret),
-        None => Err(ServerFnError::from(NexusError::Unhandled)),
+        None => Err(UNHANDLED),
     }
 }

@@ -44,6 +44,7 @@ chrono = { workspace = true, optional = true }
 zxcvbn = { workspace = true, optional = true }
 base64 = { workspace = true, optional = true }
 sha2 = { workspace = true, optional = true }
+subtle = { workspace = true, optional = true }
 
 [dev-dependencies]
 mockall = { workspace = true }
@@ -87,6 +88,7 @@ ssr = [
     "dep:zxcvbn",
     "dep:base64",
     "dep:sha2",
+    "dep:subtle",
 ]
 
 # cargo-lambda allows certain settings to be defined here,

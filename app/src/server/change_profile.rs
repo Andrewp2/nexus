@@ -1,22 +1,31 @@
-use super::globals::{
-    self,
-    dynamo::{
-        self,
-        constants::{
-            index::EMAIL_VERIFICATION_UUID,
-            table_attributes::{self, EMAIL, EMAIL_VERIFIED, SESSION_EXPIRY, SESSION_ID},
-        },
-        query_builder, query_entire_user, query_setup,
-    },
-    env_var::get_table_name,
-};
+use std::{collections::HashMap, sync::Arc};
+
+use super::csrf;
+use super::globals::dynamo::update_setup;
 use super::utilities::{
     dynamo_client, get_email_from_session_id, get_session_cookie, handle_dynamo_generic_error,
     ses_client,
 };
-use crate::errors::NexusError;
+use super::{
+    csrf::validate_csrf_header,
+    globals::{
+        dynamo::{
+            self,
+            constants::table_attributes::{
+                self, EMAIL, EMAIL_VERIFICATION_REQUEST_TIME, EMAIL_VERIFICATION_UUID,
+                EMAIL_VERIFIED, SESSION_EXPIRY,
+            },
+            query_setup,
+        },
+        env_var::get_table_name,
+    },
+    utilities::kms_client,
+};
+use crate::errors::{NexusError, UNHANDLED};
 use crate::site::constants::{SITE_DOMAIN, SITE_EMAIL_ADDRESS, SITE_FULL_DOMAIN};
-use aws_sdk_dynamodb::types::AttributeValue;
+use aws_sdk_dynamodb::{
+    operation::query::QueryOutput, types::AttributeValue, Client as DynamoClient,
+};
 use aws_sdk_ses::types::{Body, Content, Destination, Message};
 use chrono::Utc;
 use email_address::EmailAddress;
@@ -31,6 +40,11 @@ pub async fn change_email_request(new_email: String) -> Result<(), ServerFnError
     }
     let session_id_cookie = get_session_cookie().await?;
     let client = dynamo_client()?;
+    let kms_client = kms_client()?;
+    let x: &aws_sdk_kms::Client = &kms_client;
+    if !validate_csrf_header(x, session_id_cookie.clone()).await? {
+        return Err(UNHANDLED);
+    }
     let old_user_query = query_setup(
         &client,
         session_id_cookie.clone(),
@@ -39,41 +53,85 @@ pub async fn change_email_request(new_email: String) -> Result<(), ServerFnError
     .send()
     .await
     .map_err(aws_sdk_dynamodb::Error::from);
+    let attributes = get_attributes_from_query(old_user_query)?;
+    let session_expiry = get_session_expiry_from_attributes(&attributes)?;
+    let now = Utc::now().timestamp();
+    if now >= session_expiry {
+        return Err(ServerFnError::from(NexusError::InvalidSession));
+    }
+    let old_email = get_old_email_from_request(&attributes)?;
+    let change_email_verification_uuid =
+        put_new_email_if_it_doesnt_exist(client, &attributes, now).await?;
+    send_email_for_change_email_request(change_email_verification_uuid, old_email, new_email)
+        .await?;
+    leptos_axum::redirect("/email_verification/");
+    Ok(())
+}
+
+fn get_session_expiry_from_attributes(
+    attributes: &HashMap<String, AttributeValue>,
+) -> Result<i64, ServerFnError<NexusError>> {
+    let session_expiry = attributes
+        .get(SESSION_EXPIRY)
+        .ok_or_else(|| {
+            log::error!("Could not get session expiry");
+            UNHANDLED
+        })?
+        .as_n()
+        .map_err(|e| {
+            log::error!("Could not convert session expiry to number {:?}", e);
+            UNHANDLED
+        })?
+        .parse::<i64>()
+        .map_err(|e| {
+            log::error!("Could not parse sesion expiry number as i64 {:?}", e);
+            UNHANDLED
+        })?;
+    Ok(session_expiry)
+}
+
+fn get_attributes_from_query(
+    old_user_query: Result<QueryOutput, aws_sdk_dynamodb::Error>,
+) -> Result<HashMap<String, AttributeValue>, ServerFnError<NexusError>> {
     let user = match old_user_query {
         Ok(o) => Ok(o),
         Err(e) => Err(handle_dynamo_generic_error(e)),
     }?;
     let items = user.items.ok_or_else(|| {
         log::error!("Could not get items from user");
-        ServerFnError::from(NexusError::Unhandled)
+        UNHANDLED
     })?;
     let attributes = items.first().ok_or_else(|| {
         log::error!("Could not get first item from items");
-        ServerFnError::from(NexusError::Unhandled)
+        UNHANDLED
     })?;
-    let session_expiry = attributes
-        .get(SESSION_EXPIRY)
+    Ok(attributes.clone())
+}
+
+fn get_old_email_from_request(
+    attributes: &HashMap<String, AttributeValue>,
+) -> Result<&String, ServerFnError<NexusError>> {
+    let old_email = attributes
+        .get(EMAIL)
         .ok_or_else(|| {
-            log::error!("Could not get session expiry");
-            ServerFnError::from(NexusError::Unhandled)
+            log::error!("Could not get email attribute");
+            UNHANDLED
         })?
-        .as_n()
+        .as_s()
         .map_err(|e| {
-            log::error!("Could not convert session expiry to number {:?}", e);
-            ServerFnError::from(NexusError::Unhandled)
-        })?
-        .parse::<i64>()
-        .map_err(|e| {
-            log::error!("Could not parse sesion expiry number as i64 {:?}", e);
-            ServerFnError::from(NexusError::Unhandled)
+            log::error!("Could not get email attribute as string {:?}", e);
+            UNHANDLED
         })?;
-    let now = Utc::now().timestamp();
-    if now >= session_expiry {
-        return Err(ServerFnError::from(NexusError::InvalidSession));
-    }
+    Ok(old_email)
+}
+
+async fn put_new_email_if_it_doesnt_exist(
+    client: Arc<DynamoClient>,
+    attributes: &HashMap<String, AttributeValue>,
+    now: i64,
+) -> Result<String, ServerFnError<NexusError>> {
     let check_email_not_already_exists_expression =
         format!("attribute_not_exists({})", table_attributes::EMAIL);
-    // this involves a query for the new email, but we could just use a conditional put
     let mut put = client
         .put_item()
         .table_name(get_table_name())
@@ -85,6 +143,10 @@ pub async fn change_email_request(new_email: String) -> Result<(), ServerFnError
     put = put.item(
         EMAIL_VERIFICATION_UUID,
         AttributeValue::S(change_email_verification_uuid.clone()),
+    );
+    put = put.item(
+        EMAIL_VERIFICATION_REQUEST_TIME,
+        AttributeValue::N(now.to_string()),
     );
     put = put.item(EMAIL_VERIFIED, AttributeValue::Bool(false));
     let put_resp = put.send().await.map_err(aws_sdk_dynamodb::Error::from);
@@ -100,25 +162,21 @@ pub async fn change_email_request(new_email: String) -> Result<(), ServerFnError
             }))
         }
     }?;
-    // let old_email = old_user_query.email.unwrap();
-    let old_email = attributes
-        .get(EMAIL)
-        .ok_or_else(|| {
-            log::error!("Could not get email attribute");
-            ServerFnError::from(NexusError::Unhandled)
-        })?
-        .as_s()
-        .map_err(|e| {
-            log::error!("Could not get email attribute as string {:?}", e);
-            ServerFnError::from(NexusError::Unhandled)
-        })?;
+    Ok(change_email_verification_uuid)
+}
+
+async fn send_email_for_change_email_request(
+    change_email_verification_uuid: String,
+    old_email: &String,
+    new_email: String,
+) -> Result<(), ServerFnError<NexusError>> {
     let ses_client = ses_client()?;
     let body = format!(
         "Hello,
 Did you just request that your email address be changed?
 If so, click on the below link to accept the email change:
 
-https://{}/email_verification/{}
+https://{}/email_verification?q={}
 
 If you did not request an email address change, please change your password.",
         SITE_FULL_DOMAIN,
@@ -126,7 +184,7 @@ If you did not request an email address change, please change your password.",
     );
     let email_body_html = Content::builder().data(body).build().map_err(|e| {
         log::error!("Could not build email body html {:?}", e);
-        ServerFnError::from(NexusError::Unhandled)
+        UNHANDLED
     })?;
     let email_body = Body::builder().html(email_body_html).build();
     let email_subject_content = Content::builder()
@@ -137,7 +195,7 @@ If you did not request an email address change, please change your password.",
         .build()
         .map_err(|e| {
             log::error!("Could not build email subject content {:?}", e);
-            ServerFnError::from(NexusError::Unhandled)
+            UNHANDLED
         })?;
     let email_message = Message::builder()
         .subject(email_subject_content)
@@ -155,21 +213,23 @@ If you did not request an email address change, please change your password.",
         Err(e) => Err({
             log::error!("Warning, we created a new account for {} but we weren't able to send them the verification email!", new_email);
             log::error!("{:?}", e);
-            ServerFnError::from(NexusError::Unhandled)
+            UNHANDLED
         }),
     }?;
-    leptos_axum::redirect("/email_verification/");
     Ok(())
 }
 
 async fn change_value(name: &str, value: AttributeValue) -> Result<(), ServerFnError<NexusError>> {
     let client = dynamo_client()?;
+    let kms_client = kms_client()?;
     let session_id = get_session_cookie().await?;
+    let csrf_valid = csrf::validate_csrf_header(&(*kms_client), session_id.clone()).await?;
+    if !csrf_valid {
+        log::error!("Invalid CSRF");
+        return Err(UNHANDLED);
+    }
     let email = get_email_from_session_id(session_id, &client).await?;
-    let update_resp = client
-        .update_item()
-        .table_name(get_table_name())
-        .key(table_attributes::EMAIL, AttributeValue::S(email))
+    let update_resp = update_setup(&client, email)
         .update_expression("SET #e = :r")
         .expression_attribute_names("#e".to_string(), name)
         .expression_attribute_values(":r", value)
@@ -194,7 +254,6 @@ pub async fn change_display_name(
     change_value(table_attributes::DISPLAY_NAME, display_name_av).await
 }
 
-// TODO: Fix
 pub async fn change_password(new_password: String) -> Result<(), ServerFnError<NexusError>> {
     let new_password_av = AttributeValue::S(new_password);
     change_value(table_attributes::PASSWORD, new_password_av).await

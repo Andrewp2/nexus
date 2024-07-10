@@ -2,7 +2,6 @@ use app::server::csrf::{generate_csrf_token, generate_random_bytes, KmsClientTra
 use aws_sdk_kms::{
     operation::{generate_mac::GenerateMacOutput, verify_mac::VerifyMacOutput},
     primitives::Blob,
-    types::MacAlgorithmSpec,
 };
 use base64::{engine::general_purpose, Engine as _};
 use leptos::ServerFnError;
@@ -17,14 +16,12 @@ mock! {
             &self,
             key_id: String,
             message: Vec<u8>,
-            algorithm: MacAlgorithmSpec,
         ) -> Result<GenerateMacOutput, ServerFnError<app::errors::NexusError>>;
 
         async fn verify_mac(
             &self,
             key_id: String,
             message: Vec<u8>,
-            algorithm: MacAlgorithmSpec,
             mac: Blob,
         ) -> Result<VerifyMacOutput, ServerFnError<app::errors::NexusError>>;
     }
@@ -39,12 +36,11 @@ async fn test_generate_csrf_token_success() {
     let s_id = session_id.clone();
     mock_client
         .expect_generate_mac()
-        .withf(move |key_id, message, algorithm| {
+        .withf(move |key_id, message| {
             key_id == &format!("alias/CSRFSecretKey{}", std::env!("STAGE"))
-                && algorithm == &MacAlgorithmSpec::HmacSha256
                 && message.starts_with(s_id.as_bytes())
         })
-        .returning(move |_, _, _| {
+        .returning(move |_, _| {
             Ok(GenerateMacOutput::builder()
                 .mac(Blob::new(e_mac.clone()))
                 .build())

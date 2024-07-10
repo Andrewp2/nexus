@@ -60,18 +60,6 @@ pub async fn download_file_from_s3(
     Ok(data.into_bytes())
 }
 
+// TODO: Check out itch.io's cool 'wharf' protocol
 // pub async fn download() -> Result<String, ServerFnError<NexusError>> {
-//     let client = dynamo_client()?;
-//     let session_id = get_session_cookie().await?;
-//     let db_query_result = query_setup(&client, session_id, TableKeyType::SessionId)
-//         .send()
-//         .await
-//         .map_err(|e| aws_sdk_dynamodb::Error::from(e));
-
-//     let email = match db_query_result {
-//         Ok(o) => Ok(extract_id_from_query(o)?),
-//         Err(e) => Err(handle_dynamo_generic_error(e)),
-//     }?;
-
-//     Ok(email)
 // }

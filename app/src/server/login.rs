@@ -1,5 +1,5 @@
 use super::csrf::{generate_csrf_token, generate_random_bytes};
-use super::globals::dynamo::{query_builder, query_setup, TableKeyType};
+use super::globals::dynamo::{query_setup, update_setup, TableKeyType};
 use super::utilities::{
     dynamo_client, handle_dynamo_generic_error, session_lifespan, verify_password,
 };
@@ -8,11 +8,11 @@ use super::{
         dynamo::constants::table_attributes::{
             EMAIL, EMAIL_VERIFIED, PASSWORD, SESSION_EXPIRY, SESSION_ID,
         },
-        env_var::{get_host_prefix, get_table_name},
+        env_var::get_host_prefix,
     },
     utilities::kms_client,
 };
-use crate::errors::NexusError;
+use crate::errors::{NexusError, UNHANDLED};
 use aws_sdk_dynamodb::{operation::query::QueryOutput, types::AttributeValue};
 use aws_sdk_kms::Client as KeyClient;
 use chrono::Utc;
@@ -50,7 +50,7 @@ pub async fn login(
         true => update_session_and_set_cookie(remember, kms_client, client, email).await,
         // https://security.stackexchange.com/questions/227524/password-reset-giving-clues-of-possible-valid-email-addresses/227566#227566
         // TL;DR it is fine from a UX standpoint to say specifically they have the incorrect password, yes this does leak the fact
-        // that a specific email address is logged in
+        // that a specific email address is registered (user enumeration attack)
         false => {
             log::error!("Tried to login with incorrect password");
             Err(ServerFnError::from(NexusError::IncorrectPassword))
@@ -74,10 +74,7 @@ async fn update_session_and_set_cookie(
     let kms_client: &aws_sdk_kms::Client = &kms_client;
     let random_bytes = generate_random_bytes();
     let csrf_token = generate_csrf_token(kms_client, session_uuid.clone(), random_bytes).await?;
-    let update_session_expiry_db_result = dynamo_client
-        .update_item()
-        .table_name(get_table_name())
-        .key(EMAIL, AttributeValue::S(email))
+    let update_session_expiry_db_result = update_setup(&dynamo_client, email)
         .update_expression(update_expression)
         .expression_attribute_values(":session_id", AttributeValue::S(session_uuid.clone()))
         .expression_attribute_values(
@@ -123,7 +120,7 @@ fn on_successful_session_update(
     let csrf_cookie = format!(
         "{}{}={};Expires={};Secure;SameSite=Lax; Path=/",
         get_host_prefix(),
-        "csrf_token",
+        "X-Csrf-Token",
         csrf_token,
         future_time.format("%a, %d %b %Y %H:%M:%S GMT").to_string()
     );
@@ -139,7 +136,7 @@ fn on_successful_session_update(
         session_cookie,
         csrf_cookie
     );
-    Err(ServerFnError::from(NexusError::Unhandled))
+    Err(UNHANDLED)
 }
 
 fn get_hash_and_verified_status_from_query(
@@ -160,19 +157,19 @@ fn get_hash_and_verified_status_from_query(
                 "Was not able to get the inner blob from the password {:?}",
                 e
             );
-            ServerFnError::from(NexusError::Unhandled)
+            UNHANDLED
         })?
         .to_owned();
     let email_verified = item
         .get(EMAIL_VERIFIED)
         .ok_or_else(|| {
             log::error!("Was not able to get whether or not this email verification status");
-            ServerFnError::from(NexusError::Unhandled)
+            UNHANDLED
         })?
         .as_bool()
         .map_err(|e| {
             log::error!("Could not convert EMAIL_VERIFIED to boolean {:?}", e);
-            ServerFnError::from(NexusError::Unhandled)
+            UNHANDLED
         })?;
     Ok((hash_string, *email_verified))
 }

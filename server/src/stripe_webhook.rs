@@ -12,7 +12,9 @@ use std::{env, fmt::Debug};
 use stripe::{CheckoutSession, Event as WebhookEvent, EventObject, EventType, Webhook};
 
 use app::server::globals::{
-    app_state::AppState, dynamo::constants::table_attributes, env_var::get_table_name,
+    app_state::AppState,
+    dynamo::{constants::table_attributes, update_setup},
+    env_var::get_table_name,
 };
 
 impl From<(StatusCode, String)> for ServerError {
@@ -143,10 +145,7 @@ async fn checkout_session_completed(
     let item_id = metadata
         .get("item_id")
         .ok_or(not_found("item_id metadata"))?;
-    let update = dynamo_client
-        .update_item()
-        .table_name(get_table_name())
-        .key(table_attributes::EMAIL, AttributeValue::S(email))
+    let update = update_setup(&dynamo_client, email)
         .update_expression("SET #listAttr = list_append(#listAttr, :newElement)")
         .expression_attribute_names("#listAttr", "listAttributeName")
         .expression_attribute_values(

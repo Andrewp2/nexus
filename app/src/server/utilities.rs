@@ -25,24 +25,24 @@ use super::globals::{
     env_var::{get_host_prefix, get_table_name},
 };
 
-use crate::errors::NexusError;
+use crate::errors::{NexusError, UNHANDLED};
 
 pub fn dynamo_client() -> Result<Arc<DynamoClient>, ServerFnError<NexusError>> {
-    use_context::<Arc<DynamoClient>>().ok_or_else(|| ServerFnError::from(NexusError::Unhandled))
+    use_context::<Arc<DynamoClient>>().ok_or_else(|| UNHANDLED)
 }
 
 pub fn ses_client() -> Result<Arc<SesClient>, ServerFnError<NexusError>> {
-    use_context::<Arc<SesClient>>().ok_or_else(|| ServerFnError::from(NexusError::Unhandled))
+    use_context::<Arc<SesClient>>().ok_or_else(|| UNHANDLED)
 }
 
 pub fn kms_client() -> Result<Arc<KeyClient>, ServerFnError<NexusError>> {
-    use_context::<Arc<KeyClient>>().ok_or_else(|| ServerFnError::from(NexusError::Unhandled))
+    use_context::<Arc<KeyClient>>().ok_or_else(|| UNHANDLED)
 }
 
 pub fn stripe_client() -> Result<Arc<StripeClient>, ServerFnError<NexusError>> {
     use_context::<Arc<StripeClient>>().ok_or_else(|| {
         log::error!("Could not get Stripe client");
-        ServerFnError::from(NexusError::Unhandled)
+        UNHANDLED
     })
 }
 
@@ -80,7 +80,7 @@ pub async fn get_session_cookie() -> Result<String, ServerFnError<NexusError>> {
         .get(format!("{}{}", get_host_prefix(), SESSION_ID).as_str())
         .ok_or_else(|| {
             log::error!("Couldn't get session_id from cookie_jar");
-            ServerFnError::from(NexusError::Unhandled)
+            UNHANDLED
         })?;
     let f = session_id
         .value()
@@ -88,7 +88,7 @@ pub async fn get_session_cookie() -> Result<String, ServerFnError<NexusError>> {
         .strip_prefix(get_host_prefix())
         .ok_or_else(|| {
             log::error!("Couldn't remove __Host- prefix from cookie");
-            ServerFnError::from(NexusError::Unhandled)
+            UNHANDLED
         })?
         .to_string();
 
@@ -113,18 +113,16 @@ pub async fn check_if_session_is_valid(
 
     match query {
         Ok(o) => {
-            let items = o
-                .items
-                .ok_or_else(|| ServerFnError::from(NexusError::Unhandled))?;
+            let items = o.items.ok_or_else(|| UNHANDLED)?;
             let item_in_query = items.first().ok_or_else(|| {
                 log::error!("Unable to get first item in check_if_session_is_valid query");
-                ServerFnError::from(NexusError::Unhandled)
+                UNHANDLED
             })?;
             let session_id = item_in_query
                 .get(SESSION_ID)
                 .ok_or_else(|| {
                     log::error!("Unable to get session_id in check_if_session_is_valid query");
-                    ServerFnError::from(NexusError::Unhandled)
+                    UNHANDLED
                 })?
                 .as_s()
                 .map_err(|e| {
@@ -132,23 +130,23 @@ pub async fn check_if_session_is_valid(
                         "Can't get session_id as string in check_if_session_is_valid query{:?}",
                         e
                     );
-                    ServerFnError::from(NexusError::Unhandled)
+                    UNHANDLED
                 })?;
             let session_expiry = item_in_query.get(SESSION_EXPIRY).ok_or_else(|| {
                     log::error!("Unable to get session_id in check_if_session_is_valid query");
-                    ServerFnError::from(NexusError::Unhandled)
+                    UNHANDLED
                 })?.as_n().map_err(|e| {
                     log::error!("Can't get session_expiry as number in check_if_session_is_valid query {:?}", e);
-                    ServerFnError::from(NexusError::Unhandled)
+                    UNHANDLED
                 })?.parse::<i64>().map_err(|e| {
                     log::error!("Could not parse string as i64 {:?}", e);
-                    ServerFnError::from(NexusError::Unhandled)
+                    UNHANDLED
                 })?;
             let email = item_in_query
                 .get(EMAIL)
                 .ok_or_else(|| {
                     log::error!("Unable to get email in check_if_session_is_valid query");
-                    ServerFnError::from(NexusError::Unhandled)
+                    UNHANDLED
                 })?
                 .as_s()
                 .map_err(|e| {
@@ -156,7 +154,7 @@ pub async fn check_if_session_is_valid(
                         "Can't get email as string in check_if_session_is_valid query {:?}",
                         e
                     );
-                    ServerFnError::from(NexusError::Unhandled)
+                    UNHANDLED
                 })?;
             let now = Utc::now().timestamp();
             Ok((
@@ -168,56 +166,88 @@ pub async fn check_if_session_is_valid(
     }
 }
 
-pub fn extract_email_from_query(o: QueryOutput) -> Result<String, ServerFnError<NexusError>> {
-    let items: Vec<HashMap<String, AttributeValue>> = o.items.ok_or_else(|| {
+pub fn extract_email_from_query(o: &QueryOutput) -> Result<String, ServerFnError<NexusError>> {
+    let items: Vec<HashMap<String, AttributeValue>> = o.items.clone().ok_or_else(|| {
         log::error!("Unable to get items from QueryOutput in extract_email_from_query");
-        ServerFnError::from(NexusError::Unhandled)
+        UNHANDLED
     })?;
     let item = items
         .first()
         .ok_or_else(|| {
             log::error!("Cannot get first item in extract_email_from_query");
-            ServerFnError::from(NexusError::Unhandled)
+            UNHANDLED
         })?
         .clone();
     let email_string = item
         .get(table_attributes::EMAIL)
         .ok_or_else(|| {
             log::error!("Unable to find email attribute (should be impossible)");
-            ServerFnError::from(NexusError::Unhandled)
+            UNHANDLED
         })?
         .as_s()
         .map_err(|e| {
             log::error!("Could not get email as string {:?}", e);
-            ServerFnError::from(NexusError::Unhandled)
+            UNHANDLED
         })?
         .clone();
 
     Ok(email_string)
 }
 
-pub fn extract_id_from_query(o: QueryOutput) -> Result<String, ServerFnError<NexusError>> {
-    let items = o
-        .items
-        .ok_or_else(|| ServerFnError::from(NexusError::Unhandled))?
+pub fn extract_email_verification_request_time_from_query(
+    o: &QueryOutput,
+) -> Result<i64, ServerFnError<NexusError>> {
+    let items: Vec<HashMap<String, AttributeValue>> = o.items.clone().ok_or_else(|| {
+        log::error!("Unable to get items from QueryOutput in extract_email_verification_request_time_from_query");
+        UNHANDLED
+    })?;
+    let item = items
+        .first()
+        .ok_or_else(|| {
+            log::error!(
+                "Cannot get first item in extract_email_verification_request_time_from_query"
+            );
+            UNHANDLED
+        })?
         .clone();
+    let email_verification_request_time = item
+        .get(table_attributes::EMAIL_VERIFICATION_REQUEST_TIME)
+        .ok_or_else(|| {
+            log::error!("Unable to find email verification request time attribute (should be impossible)");
+            UNHANDLED
+        })?
+        .as_n()
+        .map_err(|e| {
+            log::error!("Could not get email verification request time as number {:?}", e);
+            UNHANDLED
+        })?
+        .parse::<i64>()
+        .map_err(|e| {
+            log::error!("Could not parse string into i64 in extract_email_verification_request_time_from_query {:?}", e);
+            UNHANDLED
+        })?;
+    Ok(email_verification_request_time)
+}
+
+pub fn extract_id_from_query(o: QueryOutput) -> Result<String, ServerFnError<NexusError>> {
+    let items = o.items.ok_or_else(|| UNHANDLED)?.clone();
     let item = items
         .first()
         .ok_or_else(|| {
             log::error!("Cannot get first item in extract_id_from_query");
-            ServerFnError::from(NexusError::Unhandled)
+            UNHANDLED
         })?
         .clone();
     let user_uuid = item
         .get(table_attributes::USER_UUID)
         .ok_or_else(|| {
             log::error!("Unable to find user_uuid attribute (should be impossible)");
-            ServerFnError::from(NexusError::Unhandled)
+            UNHANDLED
         })?
         .as_s()
         .map_err(|e| {
             log::error!("Could not get user_uuid as string {:?}", e);
-            ServerFnError::from(NexusError::Unhandled)
+            UNHANDLED
         })?
         .clone();
 
@@ -241,7 +271,7 @@ pub async fn check_email_uniqueness(
         Ok(o) => {
             let items = o.item.ok_or_else(|| {
                 log::error!("Could not get item from items in check_new_email_uniqueness");
-                ServerFnError::from(NexusError::Unhandled)
+                UNHANDLED
             })?;
             let item = items.get(EMAIL);
             Ok(item.is_none())
@@ -260,7 +290,7 @@ pub async fn get_email_from_session_id(
         .map_err(aws_sdk_dynamodb::Error::from);
 
     let email = match db_query_result {
-        Ok(o) => Ok(extract_email_from_query(o)?),
+        Ok(o) => Ok(extract_email_from_query(&o)?),
         Err(e) => Err(handle_dynamo_generic_error(e)),
     }?;
 

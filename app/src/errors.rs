@@ -1,6 +1,7 @@
 use core::fmt;
 use std::str::FromStr;
 
+use leptos::ServerFnError;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy)]
@@ -14,6 +15,7 @@ pub enum NexusError {
     GenericSesError,
     CouldNotFindRowWithThatEmail,
     EmailVerificationUuidNotFound,
+    EmailVerificationTookTooLong,
     EmailNotFoundLogin,
     IncorrectPassword,
     InvalidSession,
@@ -23,6 +25,9 @@ pub enum NexusError {
     #[serde(other)]
     Unhandled,
 }
+
+pub const UNHANDLED: ServerFnError<NexusError> =
+    ServerFnError::WrappedServerError(NexusError::Unhandled);
 
 impl FromStr for NexusError {
     type Err = String;
