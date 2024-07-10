@@ -1,21 +1,16 @@
-use std::collections::HashMap;
-
+use super::env_var::get_table_name;
+use crate::errors::NexusError;
 use aws_sdk_dynamodb::{
     operation::{
         query::builders::QueryFluentBuilder, update_item::builders::UpdateItemFluentBuilder,
     },
     types::AttributeValue,
 };
-
-use crate::errors::NexusError;
-
-use super::env_var::get_table_name;
+use std::collections::HashMap;
 
 #[cfg(feature = "ssr")]
 pub mod constants {
-
     pub const GAME_NAME_1: &str = "game_1";
-
     pub mod table_attributes {
         pub const DISPLAY_NAME: &str = "display_name";
         pub const EMAIL: &str = "email";
@@ -29,7 +24,6 @@ pub mod constants {
         pub const EMAIL_VERIFICATION_UUID: &str = "email_verification_uuid";
         pub const EMAIL_VERIFICATION_REQUEST_TIME: &str = "email_verification_request_time";
     }
-
     pub mod index {
         pub const SESSION_ID_INDEX: &str = "session_id-index";
         pub const EMAIL_VERIFICATION_UUID_INDEX: &str = "email_verification_uuid-index";

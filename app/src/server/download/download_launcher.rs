@@ -1,13 +1,13 @@
+use super::{
+    super::globals::app_state::AppState,
+    download_utils::{download_file_from_s3, SessionId, LAUNCHER_BUCKET_NAME},
+};
 use axum::{
     body::Body,
     extract::{Extension, Path},
     response::IntoResponse,
 };
 use http::{Response, StatusCode};
-
-use super::super::globals::app_state::AppState;
-
-use super::download_utils::{download_file_from_s3, SessionId, LAUNCHER_BUCKET_NAME};
 
 pub async fn download_launcher(
     Path(os_type): Path<String>,

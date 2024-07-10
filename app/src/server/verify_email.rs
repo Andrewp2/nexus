@@ -1,8 +1,10 @@
-use super::globals::dynamo::{query_setup, update_setup, TableKeyType};
-use super::globals::dynamo::constants::*;
-use super::utilities::{
-    dynamo_client, extract_email_from_query, extract_email_verification_request_time_from_query,
-    handle_dynamo_generic_error, ses_client,
+use super::{
+    globals::dynamo::{constants::table_attributes, query_setup, update_setup, TableKeyType},
+    utilities::{
+        dynamo_client, extract_email_from_query,
+        extract_email_verification_request_time_from_query, handle_dynamo_generic_error,
+        ses_client,
+    },
 };
 use crate::{
     errors::NexusError,
@@ -28,9 +30,7 @@ If this was you, verify your email by clicking on the link below:
 https://{}/email_verification/{}
 
 If this was not you, you may ignore this email.",
-        SITE_DOMAIN,
-        SITE_FULL_DOMAIN,
-        verification_uuid
+        SITE_DOMAIN, SITE_FULL_DOMAIN, verification_uuid
     );
     let email_body_html = Content::builder().data(body).build().map_err(|e| {
         log::error!("Could not build email body html {:?}", e);

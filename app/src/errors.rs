@@ -1,8 +1,7 @@
 use core::fmt;
-use std::str::FromStr;
-
 use leptos::ServerFnError;
 use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 #[serde(rename_all = "snake_case")]

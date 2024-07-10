@@ -1,5 +1,3 @@
-use std::{collections::HashMap, sync::Arc};
-
 use argon2::{
     password_hash::{Error, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
     Argon2,
@@ -14,11 +12,13 @@ use chrono::Utc;
 use leptos::{use_context, ServerFnError};
 use leptos_axum::extract;
 use rand::rngs::OsRng;
+use std::{collections::HashMap, sync::Arc};
 use stripe::Client as StripeClient;
 
 use super::globals::{
     dynamo::{
-        constants::table_attributes::{self, EMAIL, SESSION_EXPIRY, SESSION_ID}, query_setup, TableKeyType,
+        constants::table_attributes::{self, EMAIL, SESSION_EXPIRY, SESSION_ID},
+        query_setup, TableKeyType,
     },
     env_var::{get_host_prefix, get_table_name},
 };

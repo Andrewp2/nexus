@@ -1,6 +1,5 @@
-use leptos::{server, ServerFnError};
-
 use crate::errors::NexusError;
+use leptos::{server, ServerFnError};
 
 /// Contains all the public-facing API calls.
 // TODO: Implement rate limiting? Handle on API Gateway instead of here maybe?

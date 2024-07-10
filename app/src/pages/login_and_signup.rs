@@ -1,14 +1,13 @@
+use crate::{
+    errors::NexusError,
+    public::{Login, Signup},
+};
 use leptos::{
     component, create_server_action, create_signal, event_target_value, set_timeout, view, Action,
     IntoView, ServerFnError, WriteSignal,
 };
 use leptos_router::ActionForm;
 use zxcvbn::zxcvbn;
-
-use crate::{
-    errors::NexusError,
-    public::{Login, Signup},
-};
 
 #[component]
 pub fn LoginAndSignup(

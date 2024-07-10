@@ -1,13 +1,5 @@
-use std::{collections::HashMap, sync::Arc};
-
-use super::csrf;
-use super::globals::dynamo::update_setup;
-use super::utilities::{
-    dynamo_client, get_email_from_session_id, get_session_cookie, handle_dynamo_generic_error,
-    ses_client,
-};
 use super::{
-    csrf::validate_csrf_header,
+    csrf::{self, validate_csrf_header},
     globals::{
         dynamo::{
             self,
@@ -15,14 +7,19 @@ use super::{
                 self, EMAIL, EMAIL_VERIFICATION_REQUEST_TIME, EMAIL_VERIFICATION_UUID,
                 EMAIL_VERIFIED, SESSION_EXPIRY,
             },
-            query_setup,
+            query_setup, update_setup,
         },
         env_var::get_table_name,
     },
-    utilities::kms_client,
+    utilities::{
+        dynamo_client, get_email_from_session_id, get_session_cookie, handle_dynamo_generic_error,
+        kms_client, ses_client,
+    },
 };
-use crate::errors::{NexusError, UNHANDLED};
-use crate::site::constants::{SITE_DOMAIN, SITE_EMAIL_ADDRESS, SITE_FULL_DOMAIN};
+use crate::{
+    errors::{NexusError, UNHANDLED},
+    site::constants::{SITE_DOMAIN, SITE_EMAIL_ADDRESS, SITE_FULL_DOMAIN},
+};
 use aws_sdk_dynamodb::{
     operation::query::QueryOutput, types::AttributeValue, Client as DynamoClient,
 };
@@ -31,6 +28,7 @@ use chrono::Utc;
 use email_address::EmailAddress;
 use leptos::ServerFnError;
 use rustrict::{Censor, Type};
+use std::{collections::HashMap, sync::Arc};
 use uuid::Uuid;
 
 /// Starts a request to change email
@@ -179,8 +177,7 @@ If so, click on the below link to accept the email change:
 https://{}/email_verification?q={}
 
 If you did not request an email address change, please change your password.",
-        SITE_FULL_DOMAIN,
-        change_email_verification_uuid
+        SITE_FULL_DOMAIN, change_email_verification_uuid
     );
     let email_body_html = Content::builder().data(body).build().map_err(|e| {
         log::error!("Could not build email body html {:?}", e);

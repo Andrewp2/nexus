@@ -1,7 +1,6 @@
+use crate::{errors::NexusError, public::Logout, AccountState};
 use leptos::{component, view, Action, IntoView, Memo, ServerFnError, SignalGet};
 use leptos_router::A;
-
-use crate::{errors::NexusError, public::Logout, AccountState};
 
 #[component]
 pub fn LoginAndSignupLinks() -> impl IntoView {

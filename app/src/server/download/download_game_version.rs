@@ -1,3 +1,11 @@
+use super::{
+    super::{
+        globals::{app_state::AppState, dynamo::constants::table_attributes},
+        utilities::check_if_session_is_valid,
+    },
+    download_utils::{download_file_from_s3, SessionId, GAME_BUCKET_NAME},
+};
+use crate::server::globals::dynamo::{query_setup, TableKeyType};
 use aws_sdk_s3::Client as S3Client;
 use axum::{
     body::Body,
@@ -6,16 +14,6 @@ use axum::{
 };
 use http::StatusCode;
 use semver::Version;
-
-use crate::server::globals::dynamo::{query_setup, TableKeyType};
-
-use super::super::globals::{
-    app_state::AppState, dynamo::constants::table_attributes,
-};
-
-use super::super::utilities::check_if_session_is_valid;
-
-use super::download_utils::{download_file_from_s3, SessionId, GAME_BUCKET_NAME};
 
 fn handle_error(msg: String) -> HttpResponse {
     log::error!("{}", msg);
