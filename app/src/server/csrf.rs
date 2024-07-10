@@ -108,19 +108,19 @@ pub async fn validate_csrf_header<T: KmsClientTrait>(
     })?;
     let csrf_header = headers
         .get("X-Csrf-Token")
-        .ok_or_else(|| UNHANDLED)?
+        .ok_or(UNHANDLED)?
         .to_str()
         .map_err(|_| UNHANDLED)?;
     let mut csrf_header_parts = csrf_header.splitn(2, ".");
-    let csrf_token = csrf_header_parts.next().ok_or_else(|| UNHANDLED)?;
-    let message = csrf_header_parts.next().ok_or_else(|| UNHANDLED)?;
+    let csrf_token = csrf_header_parts.next().ok_or(UNHANDLED)?;
+    let message = csrf_header_parts.next().ok_or(UNHANDLED)?;
     // We need to verify that the CSRF token that came from the header
     // is the same one as that came with this particular session_id
     // Otherwise an attacker could just use their own CSRF token
     // (although they would have to find a way to use their own CSRF token on
     // someone else's browser... XSS attack maybe?)
     let mut message_parts = message.splitn(2, "!");
-    let session_id_in_header = message_parts.next().ok_or_else(|| UNHANDLED)?;
+    let session_id_in_header = message_parts.next().ok_or(UNHANDLED)?;
     use subtle::ConstantTimeEq;
     // We might be calling verify_csrf_token before we've verified that the session is legitimate
     // In that case, attackers could use a timing side channel attack to figure out the CSRF token value

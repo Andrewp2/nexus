@@ -27,7 +27,7 @@ pub async fn login(
 #[server(Logout, "/api", "Url", "logout")]
 pub async fn logout() -> Result<(), ServerFnError<NexusError>> {
     //crate::server::logout::logout().await
-    return Ok(());
+    Ok(())
 }
 
 /// Server function that signs the user up.

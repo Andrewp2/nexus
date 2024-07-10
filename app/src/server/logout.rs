@@ -1,8 +1,5 @@
 use super::{
-    globals::{
-        dynamo::{constants::table_attributes, update_setup},
-        env_var::get_table_name,
-    },
+    globals::dynamo::{constants::table_attributes, update_setup},
     utilities::{
         dynamo_client, get_email_from_session_id, get_session_cookie, handle_dynamo_generic_error,
     },

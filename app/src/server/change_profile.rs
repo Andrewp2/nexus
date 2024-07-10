@@ -180,7 +180,7 @@ https://{}/email_verification?q={}
 
 If you did not request an email address change, please change your password.",
         SITE_FULL_DOMAIN,
-        change_email_verification_uuid.to_string()
+        change_email_verification_uuid
     );
     let email_body_html = Content::builder().data(body).build().map_err(|e| {
         log::error!("Could not build email body html {:?}", e);

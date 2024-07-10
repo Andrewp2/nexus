@@ -1,4 +1,3 @@
-use aws_sdk_dynamodb::types::AttributeValue;
 use aws_sdk_s3::Client as S3Client;
 use axum::{
     body::Body,
@@ -8,10 +7,10 @@ use axum::{
 use http::StatusCode;
 use semver::Version;
 
-use crate::server::globals::dynamo::{query_builder, query_setup, TableKeyType};
+use crate::server::globals::dynamo::{query_setup, TableKeyType};
 
 use super::super::globals::{
-    app_state::AppState, dynamo::constants::table_attributes, env_var::get_table_name,
+    app_state::AppState, dynamo::constants::table_attributes,
 };
 
 use super::super::utilities::check_if_session_is_valid;

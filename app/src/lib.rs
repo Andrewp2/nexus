@@ -29,16 +29,13 @@ use leptos_router::{ProtectedRoute, Route, Router, Routes};
 use public::{Login, Logout};
 
 #[derive(PartialEq, Debug, Clone, Copy)]
+#[derive(Default)]
 pub enum AccountState {
     LoggedIn,
+    #[default]
     LoggedOut,
 }
 
-impl Default for AccountState {
-    fn default() -> Self {
-        AccountState::LoggedOut
-    }
-}
 
 #[derive(Debug, Clone)]
 struct CSRFToken {

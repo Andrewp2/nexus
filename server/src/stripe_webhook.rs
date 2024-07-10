@@ -13,8 +13,7 @@ use stripe::{CheckoutSession, Event as WebhookEvent, EventObject, EventType, Web
 
 use app::server::globals::{
     app_state::AppState,
-    dynamo::{constants::table_attributes, update_setup},
-    env_var::get_table_name,
+    dynamo::update_setup,
 };
 
 impl From<(StatusCode, String)> for ServerError {
@@ -115,7 +114,7 @@ impl<S: Sync> FromRequest<S, Body> for SignedStripeEvent {
             let body = axum::body::to_bytes(req.into_body(), req_content_length as usize)
                 .await
                 .map_err(handle_error)?;
-            let body_str = std::str::from_utf8(&*body).map_err(handle_error)?;
+            let body_str = std::str::from_utf8(&body).map_err(handle_error)?;
 
             Ok(SignedStripeEvent(
                 Webhook::construct_event(body_str, &signature, &secret)
@@ -145,7 +144,7 @@ async fn checkout_session_completed(
     let item_id = metadata
         .get("item_id")
         .ok_or(not_found("item_id metadata"))?;
-    let update = update_setup(&dynamo_client, email)
+    let update = update_setup(dynamo_client, email)
         .update_expression("SET #listAttr = list_append(#listAttr, :newElement)")
         .expression_attribute_names("#listAttr", "listAttributeName")
         .expression_attribute_values(
@@ -154,7 +153,7 @@ async fn checkout_session_completed(
         )
         .send()
         .await
-        .map_err(|e| aws_sdk_dynamodb::Error::from(e));
+        .map_err(aws_sdk_dynamodb::Error::from);
     match update {
         Ok(_) => Ok(()),
         Err(e) => {

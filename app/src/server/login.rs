@@ -114,7 +114,7 @@ fn on_successful_session_update(
         get_host_prefix(),
         SESSION_ID,
         session_uuid.clone(),
-        future_time.format("%a, %d %b %Y %H:%M:%S GMT").to_string()
+        future_time.format("%a, %d %b %Y %H:%M:%S GMT")
     );
     // no HTTPOnly flag
     let csrf_cookie = format!(
@@ -122,7 +122,7 @@ fn on_successful_session_update(
         get_host_prefix(),
         "X-Csrf-Token",
         csrf_token,
-        future_time.format("%a, %d %b %Y %H:%M:%S GMT").to_string()
+        future_time.format("%a, %d %b %Y %H:%M:%S GMT")
     );
     if let Ok(session_cookie) = HeaderValue::from_str(session_cookie.as_str()) {
         if let Ok(csrf_cookie) = HeaderValue::from_str(csrf_cookie.as_str()) {

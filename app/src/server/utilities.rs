@@ -17,10 +17,8 @@ use rand::rngs::OsRng;
 use stripe::Client as StripeClient;
 
 use super::globals::{
-    self,
     dynamo::{
-        constants::table_attributes::{self, EMAIL, SESSION_EXPIRY, SESSION_ID},
-        query_builder, query_setup, TableKeyType,
+        constants::table_attributes::{self, EMAIL, SESSION_EXPIRY, SESSION_ID}, query_setup, TableKeyType,
     },
     env_var::{get_host_prefix, get_table_name},
 };
@@ -28,15 +26,15 @@ use super::globals::{
 use crate::errors::{NexusError, UNHANDLED};
 
 pub fn dynamo_client() -> Result<Arc<DynamoClient>, ServerFnError<NexusError>> {
-    use_context::<Arc<DynamoClient>>().ok_or_else(|| UNHANDLED)
+    use_context::<Arc<DynamoClient>>().ok_or(UNHANDLED)
 }
 
 pub fn ses_client() -> Result<Arc<SesClient>, ServerFnError<NexusError>> {
-    use_context::<Arc<SesClient>>().ok_or_else(|| UNHANDLED)
+    use_context::<Arc<SesClient>>().ok_or(UNHANDLED)
 }
 
 pub fn kms_client() -> Result<Arc<KeyClient>, ServerFnError<NexusError>> {
-    use_context::<Arc<KeyClient>>().ok_or_else(|| UNHANDLED)
+    use_context::<Arc<KeyClient>>().ok_or(UNHANDLED)
 }
 
 pub fn stripe_client() -> Result<Arc<StripeClient>, ServerFnError<NexusError>> {
@@ -113,7 +111,7 @@ pub async fn check_if_session_is_valid(
 
     match query {
         Ok(o) => {
-            let items = o.items.ok_or_else(|| UNHANDLED)?;
+            let items = o.items.ok_or(UNHANDLED)?;
             let item_in_query = items.first().ok_or_else(|| {
                 log::error!("Unable to get first item in check_if_session_is_valid query");
                 UNHANDLED
@@ -230,7 +228,7 @@ pub fn extract_email_verification_request_time_from_query(
 }
 
 pub fn extract_id_from_query(o: QueryOutput) -> Result<String, ServerFnError<NexusError>> {
-    let items = o.items.ok_or_else(|| UNHANDLED)?.clone();
+    let items = o.items.ok_or(UNHANDLED)?.clone();
     let item = items
         .first()
         .ok_or_else(|| {
